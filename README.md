@@ -235,7 +235,7 @@ Signals start as **candidates** after upload. ABC Review moves them to **confirm
 | **Phase 2** | Backend core — DOCX parser, signal detector, thread matcher, API | ✅ Done |
 | **Phase 3** | Frontend — all pages, ABC Review UI, dashboard, export | ✅ Done |
 | **Phase 4** | Testing & quality — end-to-end tests, demo DOCX, edge case validation | ✅ Done |
-| **Phase 5** | Deployment — GitHub release, startup scripts, distribution | 🔜 Next |
+| **Phase 5** | Deployment — GitHub release, startup scripts, distribution | ✅ Done |
 
 ---
 
