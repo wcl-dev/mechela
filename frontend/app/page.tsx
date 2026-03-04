@@ -88,7 +88,7 @@ export default function HomePage() {
                 {p.description && <div className="text-sm text-gray-500 mt-0.5">{p.description}</div>}
               </Link>
               <div className="flex items-center gap-4 shrink-0 ml-4">
-                <span className="text-sm text-gray-400">{p.objectives.length} objectives →</span>
+                <span className="text-sm text-gray-400">{p.objectives.length} objectives</span>
                 <button
                   onClick={() => handleDelete(p.id, p.name)}
                   className="text-xs text-gray-300 hover:text-red-500 transition-colors"
