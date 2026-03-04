@@ -28,4 +28,4 @@ class Anchor(Base):
     context_text: Mapped[str | None] = mapped_column(Text)
 
     report: Mapped["Report"] = relationship(back_populates="anchors")
-    signals: Mapped[list["Signal"]] = relationship(back_populates="anchor")
+    signals: Mapped[list["Signal"]] = relationship(back_populates="anchor", cascade="all, delete-orphan")

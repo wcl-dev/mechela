@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { getProjects, createProject } from "@/lib/api"
+import { getProjects, createProject, deleteProject } from "@/lib/api"
 import type { Project } from "@/lib/types"
 
 export default function HomePage() {
@@ -14,6 +14,12 @@ export default function HomePage() {
   useEffect(() => {
     getProjects().then(setProjects)
   }, [])
+
+  async function handleDelete(id: number, name: string) {
+    if (!confirm(`Delete "${name}" and all its data? This cannot be undone.`)) return
+    await deleteProject(id)
+    setProjects(prev => prev.filter(p => p.id !== id))
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -73,17 +79,24 @@ export default function HomePage() {
       ) : (
         <div className="grid gap-3">
           {projects.map(p => (
-            <Link
+            <div
               key={p.id}
-              href={`/projects/${p.id}`}
-              className="bg-white border border-gray-200 rounded-xl px-5 py-4 hover:border-gray-400 transition-colors flex items-center justify-between text-gray-900"
+              className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between"
             >
-              <div>
+              <Link href={`/projects/${p.id}`} className="flex-1 min-w-0 hover:opacity-70 transition-opacity">
                 <div className="font-medium text-gray-900">{p.name}</div>
                 {p.description && <div className="text-sm text-gray-500 mt-0.5">{p.description}</div>}
+              </Link>
+              <div className="flex items-center gap-4 shrink-0 ml-4">
+                <span className="text-sm text-gray-400">{p.objectives.length} objectives →</span>
+                <button
+                  onClick={() => handleDelete(p.id, p.name)}
+                  className="text-xs text-gray-300 hover:text-red-500 transition-colors"
+                >
+                  Delete
+                </button>
               </div>
-              <div className="text-sm text-gray-400">{p.objectives.length} objectives →</div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

@@ -25,6 +25,8 @@ export const createProject = (name: string, description?: string) =>
     body: JSON.stringify({ name, description }),
   })
 export const getProject = (id: number) => req<Project>(`/projects/${id}`)
+export const deleteProject = (id: number) =>
+  req<{ ok: boolean }>(`/projects/${id}`, { method: "DELETE" })
 export const createObjective = (projectId: number, title: string, description?: string) =>
   req<Objective>(`/projects/${projectId}/objectives`, {
     method: "POST",
