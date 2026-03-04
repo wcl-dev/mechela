@@ -55,7 +55,7 @@ The human review step after upload:
 - **ABC Review UI** — structured review flow with level editing, thread assignment, and inline new-thread creation
 - **Thread matching** — suggests existing threads when assigning a signal (TF-IDF in rule-based mode, embeddings in LLM mode)
 - **Temporal Dashboard** — per-project view of Objectives → Threads → Signals with confirmed signal count
-- **Export to Markdown** — generates a citable Thread + Signal + Citation document
+- **Export to Markdown** — renders a citable Thread + Signal + Citation block on the dashboard; click Copy to paste into any document
 - **Custom Keywords** — add domain-specific terms to the L1/L2/L3 keyword lists in Settings
 - **Reports list** — each uploaded report is accessible from the dashboard for re-review at any time
 
@@ -178,7 +178,7 @@ The project dashboard shows:
 - Each Objective with its Threads and the Signals nested within
 
 ### Export
-Click **Export MD** on the project dashboard to generate a Markdown document with all Threads, Signals, and source citations.
+Click **Export MD** on the project dashboard. A Markdown Export block will appear on the page containing all Threads, Signals, and source citations. Click **Copy** to copy the full text to your clipboard.
 
 ### Custom keywords
 Go to **Settings** → **Custom Signal Keywords** to add domain-specific terms your organisation uses. Keywords are applied per level (L1/L2/L3) and merged with the built-in detection vocabulary.
