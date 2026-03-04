@@ -1,0 +1,23 @@
+# ── User data (never commit) ─────────────────────────────
+backend/mechela.db
+backend/uploads/
+backend/user_settings.json
+
+# ── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.venv/
+venv/
+.env
+
+# ── Node / Next.js ───────────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/.env*
+
+# ── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
