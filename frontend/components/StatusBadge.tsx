@@ -8,10 +8,10 @@ const styles: Record<SignalStatus, string> = {
 }
 
 const labels: Record<SignalStatus, string> = {
-  candidate: "候選",
+  candidate: "待審閱",
   confirmed: "已確認",
   rejected: "已排除",
-  context: "環境訊號",
+  context: "背景脈絡",
 }
 
 export function StatusBadge({ status }: { status: SignalStatus }) {

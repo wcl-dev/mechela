@@ -16,7 +16,7 @@ export default function HomePage() {
   }, [])
 
   async function handleDelete(id: number, name: string) {
-    if (!confirm(`Delete "${name}" and all its data? This cannot be undone.`)) return
+    if (!confirm(`確定要刪除「${name}」及所有相關資料嗎？此操作無法復原。`)) return
     await deleteProject(id)
     setProjects(prev => prev.filter(p => p.id !== id))
   }
@@ -33,12 +33,12 @@ export default function HomePage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Projects</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Project 列表</h1>
         <button
           onClick={() => setShowForm(v => !v)}
           className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
         >
-          + New Project
+          + 新增 Project
         </button>
       </div>
 
@@ -46,14 +46,14 @@ export default function HomePage() {
         <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-5 mb-6 space-y-3">
           <input
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-            placeholder="Project name"
+            placeholder="Project 名稱"
             value={name}
             onChange={e => setName(e.target.value)}
             required
           />
           <input
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-            placeholder="Description (optional)"
+            placeholder="描述（選填）"
             value={desc}
             onChange={e => setDesc(e.target.value)}
           />
@@ -63,10 +63,10 @@ export default function HomePage() {
               disabled={creating}
               className="bg-teal-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50"
             >
-              {creating ? "Creating..." : "Create"}
+              {creating ? "建立中..." : "建立"}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="text-sm text-gray-500 px-4 py-2">
-              Cancel
+              取消
             </button>
           </div>
         </form>
@@ -74,7 +74,7 @@ export default function HomePage() {
 
       {projects.length === 0 ? (
         <div className="text-center py-16 text-gray-400 text-sm">
-          No projects yet. Create one to get started.
+          尚未建立任何 Project。點選上方「+ 新增 Project」開始使用。
         </div>
       ) : (
         <div className="grid gap-3">
@@ -88,12 +88,12 @@ export default function HomePage() {
                 {p.description && <div className="text-sm text-gray-500 mt-0.5">{p.description}</div>}
               </Link>
               <div className="flex items-center gap-4 shrink-0 ml-4">
-                <span className="text-sm text-gray-400">{p.objectives.length} objectives</span>
+                <span className="text-sm text-gray-400">{p.objectives.length} 個 Objective</span>
                 <button
                   onClick={() => handleDelete(p.id, p.name)}
                   className="text-xs text-gray-300 hover:text-red-500 transition-colors"
                 >
-                  Delete
+                  刪除
                 </button>
               </div>
             </div>

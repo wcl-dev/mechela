@@ -16,25 +16,20 @@ function providerToMode(p: LlmProvider): SettingsMode {
 }
 
 export default function SettingsPage() {
-  // Mode state
   const [mode, setMode] = useState<SettingsMode>("basic")
   const [status, setStatus] = useState<ProviderStatus | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // OpenAI
   const [apiKey, setApiKey] = useState("")
 
-  // Health check
   const [health, setHealth] = useState<ProviderStatus | null>(null)
   const [checking, setChecking] = useState(false)
 
-  // Keywords
   const [keywords, setKw] = useState<CustomKeywords>({ L1: [], L2: [], L3: [] })
   const [kwInput, setKwInput] = useState({ L1: "", L2: "", L3: "" })
   const [kwSaved, setKwSaved] = useState(false)
 
-  // Internal keywords
   const [intKw, setIntKw] = useState<string[]>([])
   const [intKwInput, setIntKwInput] = useState("")
   const [intKwSaved, setIntKwSaved] = useState(false)
@@ -124,24 +119,24 @@ export default function SettingsPage() {
 
   const modeLabel = status
     ? status.mode === "llm"
-      ? status.provider === "ollama" ? "Local AI mode" : `LLM mode — ${status.provider}`
-      : "Basic mode (rule-based)"
+      ? status.provider === "ollama" ? "地端 AI 模式" : `雲端模式（${status.provider}）`
+      : "基礎模式（關鍵字比對）"
     : "..."
 
   const MODE_OPTIONS: { value: SettingsMode; label: string; desc: string }[] = [
-    { value: "basic", label: "Basic mode", desc: "Keyword matching only — no AI model or setup needed" },
-    { value: "local", label: "Local AI", desc: "Privacy-first — runs fully on your machine using Ollama" },
-    { value: "cloud", label: "OpenAI (cloud)", desc: "Highest quality — data sent to OpenAI servers" },
+    { value: "basic", label: "基礎模式", desc: "使用關鍵字比對偵測，不需安裝任何 AI 模型" },
+    { value: "local", label: "地端 AI", desc: "完全在你的電腦上執行 AI 分析，資料不會離開你的電腦" },
+    { value: "cloud", label: "OpenAI（雲端）", desc: "最高準確度，報告文字會傳送至 OpenAI 伺服器" },
   ]
 
   return (
     <div className="max-w-xl space-y-8">
-      <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
+      <h1 className="text-xl font-semibold text-gray-900">設定</h1>
 
-      {/* Provider Selection */}
+      {/* 分析模式 */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
         <div>
-          <div className="font-medium text-gray-900 mb-1">Detection Mode</div>
+          <div className="font-medium text-gray-900 mb-1">分析模式</div>
           <div className={`text-sm inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${
             status?.mode === "llm" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
           }`}>
@@ -178,7 +173,7 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        {/* OpenAI config */}
+        {/* OpenAI 設定 */}
         {mode === "cloud" && (
           <div className="space-y-2 pl-7">
             <label className="text-sm text-gray-700">API Key</label>
@@ -190,33 +185,33 @@ export default function SettingsPage() {
               onChange={e => setApiKey(e.target.value)}
             />
             <p className="text-xs text-gray-400">
-              Stored locally. Report text is sent to OpenAI for analysis.
+              金鑰只儲存在你的電腦上。分析時報告段落會傳送至 OpenAI。
             </p>
           </div>
         )}
 
-        {/* Local AI status */}
+        {/* 地端 AI 狀態 */}
         {mode === "local" && (
           <div className="space-y-2 pl-7">
             <p className="text-sm text-gray-600">
-              All data stays on your machine. No internet required for analysis.
+              所有資料完全留在你的電腦，分析時不需要網路連線。
             </p>
             {!health?.reachable && (
               <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg">
-                Not connected? Run <code className="bg-amber-100 px-1 rounded">setup_local_ai.bat</code> (Windows) or <code className="bg-amber-100 px-1 rounded">./setup_local_ai.sh</code> (Mac/Linux) first.
+                尚未連線？請先執行 <code className="bg-amber-100 px-1 rounded">setup_local_ai.bat</code>（Windows）或 <code className="bg-amber-100 px-1 rounded">./setup_local_ai.sh</code>（Mac/Linux）。
               </p>
             )}
           </div>
         )}
 
-        {/* Actions */}
+        {/* 操作按鈕 */}
         <div className="flex items-center gap-3">
           <button
             onClick={handleSave}
             disabled={saving}
             className="bg-teal-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? "儲存中..." : "儲存"}
           </button>
           {mode !== "basic" && (
             <button
@@ -224,37 +219,37 @@ export default function SettingsPage() {
               disabled={checking}
               className="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100 disabled:opacity-50"
             >
-              {checking ? "Checking..." : "Test Connection"}
+              {checking ? "檢查中..." : "測試連線"}
             </button>
           )}
         </div>
 
-        {saved && <div className="text-sm text-green-600">Settings saved.</div>}
+        {saved && <div className="text-sm text-green-600">設定已儲存。</div>}
 
         {health && (
           <div className={`text-sm p-3 rounded-lg ${
             health.reachable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
           }`}>
             {health.reachable
-              ? "Connected. Local AI is ready to use."
-              : "Cannot reach Ollama. Make sure the service is running."}
+              ? "已連線，地端 AI 可以使用。"
+              : "無法連線。請確認 Ollama 服務正在執行。"}
           </div>
         )}
       </div>
 
-      {/* Custom Keywords */}
+      {/* 自訂 Signal 關鍵字 */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
         <div>
-          <div className="font-medium text-gray-900 mb-1">Custom Signal Keywords</div>
+          <div className="font-medium text-gray-900 mb-1">自訂 Signal 關鍵字</div>
           <p className="text-sm text-gray-500">
-            Add domain-specific keywords to improve rule-based detection for your organisation's language.
+            加入你的領域常用詞彙，讓基礎模式的偵測更準確。
           </p>
         </div>
 
         {(["L1", "L2", "L3"] as const).map(level => (
           <div key={level}>
             <div className="text-sm font-medium text-gray-700 mb-2">
-              {level} — {level === "L1" ? "Confirmed change" : level === "L2" ? "Intent / trial" : "Weak signal"}
+              {level} — {level === "L1" ? "已確立的改變" : level === "L2" ? "承諾或試行" : "意識萌發"}
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2 min-h-6">
               {keywords[level].map(kw => (
@@ -267,7 +262,7 @@ export default function SettingsPage() {
             <div className="flex gap-2">
               <input
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-                placeholder={`Add ${level} keyword...`}
+                placeholder={`新增 ${level} 關鍵字...`}
                 value={kwInput[level]}
                 onChange={e => setKwInput(prev => ({ ...prev, [level]: e.target.value }))}
                 onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleAddKeyword(level))}
@@ -276,20 +271,20 @@ export default function SettingsPage() {
                 onClick={() => handleAddKeyword(level)}
                 className="text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-100"
               >
-                Add
+                新增
               </button>
             </div>
           </div>
         ))}
-        {kwSaved && <div className="text-sm text-green-600">Keywords saved.</div>}
+        {kwSaved && <div className="text-sm text-green-600">關鍵字已儲存。</div>}
       </div>
 
-      {/* Internal Keywords (Organisation Names) */}
+      {/* 組織名稱 */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
         <div>
-          <div className="font-medium text-gray-900 mb-1">Organisation Names</div>
+          <div className="font-medium text-gray-900 mb-1">組織名稱</div>
           <p className="text-sm text-gray-500">
-            Add your organisation's name and abbreviations. These help the detector distinguish internal actions from external change signals.
+            加入你的組織名稱和縮寫，幫助系統區分「我們做了什麼」和「外部發生了什麼改變」。
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5 mb-2 min-h-6">
@@ -303,7 +298,7 @@ export default function SettingsPage() {
         <div className="flex gap-2">
           <input
             className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-            placeholder="e.g. your organisation abbreviation..."
+            placeholder="例如：你的組織縮寫..."
             value={intKwInput}
             onChange={e => setIntKwInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleAddIntKw())}
@@ -312,10 +307,10 @@ export default function SettingsPage() {
             onClick={handleAddIntKw}
             className="text-sm border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-100"
           >
-            Add
+            新增
           </button>
         </div>
-        {intKwSaved && <div className="text-sm text-green-600">Saved.</div>}
+        {intKwSaved && <div className="text-sm text-green-600">已儲存。</div>}
       </div>
     </div>
   )

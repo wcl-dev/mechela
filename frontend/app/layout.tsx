@@ -12,18 +12,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="zh-TW">
       <body className={`${geist.className} bg-teal-50 min-h-screen`}>
         <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-6">
           <Link href="/" className="font-semibold text-teal-800 text-lg tracking-tight">
             Mechela
           </Link>
           <Link href="/" className="text-sm text-gray-700 hover:text-gray-900">
-            Projects
+            Project 列表
           </Link>
           <div className="ml-auto">
             <Link href="/settings" className="text-sm text-gray-700 hover:text-gray-900">
-              Settings
+              設定
             </Link>
           </div>
         </nav>

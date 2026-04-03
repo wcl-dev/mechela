@@ -80,26 +80,35 @@ export default function ReviewPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-gray-400">
-          <Link href="/" className="hover:text-gray-600">Projects</Link> /
+          <Link href="/" className="hover:text-gray-600">Project 列表</Link> /
           <Link href={`/projects/${id}`} className="hover:text-gray-600 ml-1">Project</Link> /
-          <span className="ml-1">ABC Review</span>
+          <span className="ml-1">Signal 審閱</span>
         </div>
         <Link
           href={`/projects/${id}`}
           className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
         >
-          ✓ Done — Back to Project
+          完成，返回 Project
         </Link>
       </div>
 
-      <div className="flex gap-4 h-[calc(100vh-160px)]">
-        {/* Signal List */}
+      {/* 操作引導 */}
+      <div className="text-xs text-gray-400 mb-4 leading-relaxed">
+        從左邊清單選擇一筆 Signal，在右邊面板依序完成三個步驟：
+        <strong className="text-gray-500"> A</strong> 確認或修改文字 →
+        <strong className="text-gray-500"> B</strong> 選擇等級並確認/排除 →
+        <strong className="text-gray-500"> C</strong> 分配到 Thread。
+        {pending.length > 0 && <span className="ml-1">（還有 {pending.length} 筆待審閱）</span>}
+      </div>
+
+      <div className="flex gap-4 h-[calc(100vh-180px)]">
+        {/* Signal 清單 */}
         <div className="w-72 shrink-0 flex flex-col gap-1 overflow-y-auto">
           {pending.length > 0 && (
             <>
-              <div className="text-xs font-medium text-gray-400 px-1 mb-1">To Review ({pending.length})</div>
+              <div className="text-xs font-medium text-gray-400 px-1 mb-1">待審閱（{pending.length}）</div>
               {pending.map(sig => (
                 <button
                   key={sig.id}
@@ -121,7 +130,7 @@ export default function ReviewPage() {
           )}
           {done.length > 0 && (
             <>
-              <div className="text-xs font-medium text-gray-400 px-1 mt-3 mb-1">Reviewed ({done.length})</div>
+              <div className="text-xs font-medium text-gray-400 px-1 mt-3 mb-1">已審閱（{done.length}）</div>
               {done.map(sig => (
                 <button
                   key={sig.id}
@@ -140,23 +149,23 @@ export default function ReviewPage() {
             </>
           )}
           {signals.length === 0 && (
-            <div className="text-sm text-gray-400 px-2 py-4">No signals detected.</div>
+            <div className="text-sm text-gray-400 px-2 py-4">這份報告沒有偵測到 Signal。</div>
           )}
         </div>
 
-        {/* Review Panel */}
+        {/* 審閱面板 */}
         {selected ? (
           <div className="flex-1 bg-white border border-gray-200 rounded-xl p-5 overflow-y-auto flex flex-col gap-5">
-            {/* A: Signal text (click to edit) */}
+            {/* A: Signal 文字 */}
             <div>
               <div className="text-xs font-semibold text-gray-400 uppercase mb-2">
-                A — Signal
+                A — Signal 文字
                 {!editingText && (
                   <button
                     onClick={() => { setEditingText(true); setEditText(selected.text); setTextSaved(false) }}
                     className="ml-2 text-teal-600 font-normal normal-case hover:underline"
                   >
-                    Edit
+                    編輯
                   </button>
                 )}
               </div>
@@ -183,71 +192,71 @@ export default function ReviewPage() {
                       }}
                       className="text-sm bg-teal-600 text-white px-3 py-1 rounded-lg hover:bg-teal-700"
                     >
-                      Save
+                      儲存
                     </button>
                     <button
                       onClick={() => { setEditingText(false); setEditText("") }}
                       className="text-sm text-gray-400 px-3 py-1 hover:text-gray-700"
                     >
-                      Cancel
+                      取消
                     </button>
                   </div>
                 </div>
               ) : (
                 <p className="text-sm text-gray-800 leading-relaxed">{selected.text}</p>
               )}
-              {textSaved && <div className="text-xs text-teal-600 mt-1">Text updated.</div>}
+              {textSaved && <div className="text-xs text-teal-600 mt-1">文字已更新。</div>}
               {selected.confidence !== null && (
                 <div className="text-xs text-gray-400 mt-1">
-                  Confidence: {Math.round((selected.confidence ?? 0) * 100)}%
-                  {!selected.llm_mode && " -- Rule-based mode, review carefully"}
+                  信心度：{Math.round((selected.confidence ?? 0) * 100)}%
+                  {!selected.llm_mode && " — 基礎模式偵測，建議仔細審閱"}
                 </div>
               )}
             </div>
 
-            {/* B: Level & Status */}
+            {/* B: 等級與狀態 */}
             <div>
-              <div className="text-xs font-semibold text-gray-400 uppercase mb-2">B — Classify</div>
+              <div className="text-xs font-semibold text-gray-400 uppercase mb-2">B — 分類</div>
               <div className="flex gap-2 flex-wrap">
                 <select
                   value={selected.level}
                   onChange={e => updateLevel(e.target.value)}
                   className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none"
                 >
-                  <option value="L1">L1 — Confirmed change</option>
-                  <option value="L2">L2 — Intent / trial</option>
-                  <option value="L3">L3 — Weak signal</option>
-                  <option value="pending">Pending</option>
+                  <option value="L1">L1 — 已確立的改變</option>
+                  <option value="L2">L2 — 承諾或試行</option>
+                  <option value="L3">L3 — 意識萌發</option>
+                  <option value="pending">待判斷</option>
                 </select>
                 <button
                   onClick={() => updateStatus("confirmed")}
                   disabled={saving}
                   className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
-                  Confirm
+                  確認
                 </button>
                 <button
                   onClick={() => updateStatus("rejected")}
                   disabled={saving}
                   className="text-sm border border-red-200 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50"
                 >
-                  Reject
+                  排除
                 </button>
                 <button
                   onClick={() => updateStatus("context")}
                   disabled={saving}
                   className="text-sm border border-purple-200 text-purple-600 px-3 py-1.5 rounded-lg hover:bg-purple-50 disabled:opacity-50"
                 >
-                  Context Signal
+                  背景脈絡
                 </button>
               </div>
             </div>
 
-            {/* Thread Assignment */}
+            {/* C: Thread 分配 */}
             <div>
-              <div className="text-xs font-semibold text-gray-400 uppercase mb-2">Thread Assignment</div>
+              <div className="text-xs font-semibold text-gray-400 uppercase mb-2">C — 分配到 Thread</div>
               <div className="mb-2">
-                <label className="text-xs text-gray-500 mr-2">Objective:</label>
+                <label className="text-xs text-gray-500 mr-2">所屬 Objective：</label>
                 <select
                   value={selectedObjId ?? ""}
                   onChange={e => {
@@ -264,6 +273,7 @@ export default function ReviewPage() {
 
               {suggestions.length > 0 && (
                 <div className="space-y-1.5 mb-2">
+                  <div className="text-xs text-gray-400 mb-1">建議的 Thread（點擊即可分配）：</div>
                   {suggestions.map(s => (
                     <button
                       key={s.thread_id}
@@ -271,7 +281,7 @@ export default function ReviewPage() {
                       className="w-full text-left text-sm border border-gray-200 rounded-lg px-3 py-2 hover:border-gray-500 flex items-center justify-between"
                     >
                       <span>{s.statement}</span>
-                      <span className="text-xs text-gray-400 shrink-0 ml-2">{Math.round(s.score * 100)}% match</span>
+                      <span className="text-xs text-gray-400 shrink-0 ml-2">相符 {Math.round(s.score * 100)}%</span>
                     </button>
                   ))}
                 </div>
@@ -282,28 +292,28 @@ export default function ReviewPage() {
                   onClick={() => setShowNewThread(true)}
                   className="text-sm text-gray-400 hover:text-gray-700"
                 >
-                  + New thread
+                  + 建立新 Thread
                 </button>
               ) : (
                 <div className="flex gap-2 mt-2">
                   <input
                     className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-                    placeholder="Thread statement..."
+                    placeholder="Thread 描述..."
                     value={newThreadStmt}
                     onChange={e => setNewThreadStmt(e.target.value)}
                     autoFocus
                   />
                   <button onClick={handleCreateThread} className="bg-teal-600 text-white text-sm px-3 py-1.5 rounded-lg">
-                    Create & Assign
+                    建立並分配
                   </button>
-                  <button onClick={() => setShowNewThread(false)} className="text-sm text-gray-400 px-2">×</button>
+                  <button onClick={() => setShowNewThread(false)} className="text-sm text-gray-400 px-2">x</button>
                 </div>
               )}
             </div>
           </div>
         ) : (
           <div className="flex-1 bg-white border border-dashed border-gray-200 rounded-xl flex items-center justify-center text-sm text-gray-400">
-            Select a signal to review
+            從左邊選擇一筆 Signal 開始審閱
           </div>
         )}
       </div>

@@ -37,7 +37,7 @@ export default function ProjectPage() {
     setExported(result.markdown)
   }
 
-  if (!dashboard) return <div className="text-sm text-gray-400 py-8">Loading...</div>
+  if (!dashboard) return <div className="text-sm text-gray-400 py-8">載入中...</div>
 
   const totalSignals = dashboard.total_confirmed_signals
 
@@ -46,7 +46,7 @@ export default function ProjectPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="text-sm text-gray-500 mb-1">
-            <Link href="/" className="text-gray-500 hover:text-gray-800">Projects</Link> /
+            <Link href="/" className="text-gray-500 hover:text-gray-800">Project 列表</Link> /
           </div>
           <h1 className="text-xl font-semibold text-gray-900">{dashboard.project_name}</h1>
         </div>
@@ -55,13 +55,13 @@ export default function ProjectPage() {
             href={`/projects/${id}/upload`}
             className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
           >
-            + Upload Report
+            + 上傳報告
           </Link>
           <button
             onClick={handleExport}
             className="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100"
           >
-            Export MD
+            匯出 Markdown
           </button>
         </div>
       </div>
@@ -69,25 +69,25 @@ export default function ProjectPage() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <div className="text-2xl font-semibold text-gray-400">{dashboard.objectives.length}</div>
-          <div className="text-sm text-gray-500">Objectives</div>
+          <div className="text-sm text-gray-500">Objective</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <div className="text-2xl font-semibold text-gray-400">
             {dashboard.objectives.flatMap(o => o.threads).length}
           </div>
-          <div className="text-sm text-gray-500">Threads</div>
+          <div className="text-sm text-gray-500">Thread</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <div className="text-2xl font-semibold text-gray-400">{totalSignals}</div>
-          <div className="text-sm text-gray-500">Confirmed Signals</div>
+          <div className="text-sm text-gray-500">已確認 Signal</div>
         </div>
       </div>
 
       {exported && (
         <div className="mb-6 bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Markdown Export</span>
-            <button onClick={() => { navigator.clipboard.writeText(exported); }} className="text-xs text-gray-400 hover:text-gray-700">Copy</button>
+            <span className="text-sm font-medium">Markdown 匯出</span>
+            <button onClick={() => { navigator.clipboard.writeText(exported); }} className="text-xs text-gray-400 hover:text-gray-700">複製</button>
           </div>
           <pre className="text-xs text-gray-600 whitespace-pre-wrap max-h-64 overflow-y-auto">{exported}</pre>
         </div>
@@ -95,7 +95,7 @@ export default function ProjectPage() {
 
       {reports.length > 0 && (
         <div className="mb-6 bg-white border border-gray-200 rounded-xl p-5">
-          <div className="font-medium text-gray-900 mb-3">Reports</div>
+          <div className="font-medium text-gray-900 mb-3">已上傳的報告</div>
           <div className="space-y-2">
             {reports.map(r => (
               <div key={r.id} className="flex items-center justify-between text-sm">
@@ -107,25 +107,25 @@ export default function ProjectPage() {
                   <button
                     disabled={redetecting === r.id}
                     onClick={async () => {
-                      if (!confirm("Re-analyse this report with the current detection mode? Existing signals will be replaced.")) return
+                      if (!confirm("確定要用目前的分析模式重新偵測這份報告嗎？原有的 Signal 會被取代。")) return
                       setRedetecting(r.id)
                       setRedetectResult(null)
                       try {
                         const res = await redetectReport(r.id)
-                        setRedetectResult(`${r.name}: ${res.signals_detected} signals detected (${res.mode})`)
+                        setRedetectResult(`${r.name}：偵測到 ${res.signals_detected} 個 Signal（${res.mode === "llm" ? "AI 模式" : "基礎模式"}）`)
                         getDashboard(projectId).then(setDashboard)
-                      } catch { setRedetectResult("Re-analysis failed.") }
+                      } catch { setRedetectResult("重新分析失敗。") }
                       finally { setRedetecting(null) }
                     }}
                     className="text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                   >
-                    {redetecting === r.id ? "Analysing..." : "Re-analyse"}
+                    {redetecting === r.id ? "分析中..." : "重新分析"}
                   </button>
                   <Link
                     href={`/projects/${id}/review/${r.id}`}
                     className="text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-100 hover:text-gray-700"
                   >
-                    Review
+                    審閱
                   </Link>
                 </div>
               </div>
@@ -144,16 +144,16 @@ export default function ProjectPage() {
           <div key={obj.objective_id} className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="font-medium text-gray-900 mb-4">{obj.objective_title}</div>
             {obj.threads.length === 0 ? (
-              <div className="text-sm text-gray-400">No threads yet.</div>
+              <div className="text-sm text-gray-400">尚未建立 Thread。上傳報告並完成審閱後，這裡會出現改變線索。</div>
             ) : (
               <div className="space-y-3">
                 {obj.threads.map(thread => (
                   <div key={thread.thread_id} className="border border-gray-100 rounded-lg p-3">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-sm font-medium text-gray-800">{thread.statement}</span>
-                      <span className="text-xs text-gray-400 shrink-0">{thread.signal_count} signals</span>
+                      <span className="text-xs text-gray-400 shrink-0">{thread.signal_count} 個 Signal</span>
                     </div>
-                    {/* Progression Summary */}
+                    {/* 進展摘要 */}
                     <div className="mb-2">
                       {editingSummary === thread.thread_id ? (
                         <div className="space-y-2">
@@ -161,7 +161,7 @@ export default function ProjectPage() {
                             className="w-full border border-teal-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-teal-200 leading-relaxed resize-y min-h-16"
                             value={summaryText}
                             onChange={e => setSummaryText(e.target.value)}
-                            placeholder="Summarise the progression of this change thread..."
+                            placeholder="用你自己的話總結這條 Thread 的改變進展..."
                             autoFocus
                             onKeyDown={e => { if (e.key === "Escape") setEditingSummary(null) }}
                           />
@@ -173,11 +173,11 @@ export default function ProjectPage() {
                                 getDashboard(projectId).then(setDashboard)
                               }}
                               className="text-xs bg-teal-600 text-white px-3 py-1 rounded-lg hover:bg-teal-700"
-                            >Save</button>
+                            >儲存</button>
                             <button
                               onClick={() => setEditingSummary(null)}
                               className="text-xs text-gray-400 px-2 hover:text-gray-700"
-                            >Cancel</button>
+                            >取消</button>
                           </div>
                         </div>
                       ) : thread.progression_summary ? (
@@ -192,7 +192,7 @@ export default function ProjectPage() {
                           onClick={() => { setEditingSummary(thread.thread_id); setSummaryText("") }}
                           className="text-xs text-gray-400 hover:text-teal-600"
                         >
-                          + Add progression summary
+                          + 撰寫進展摘要
                         </button>
                       )}
                     </div>
@@ -216,17 +216,17 @@ export default function ProjectPage() {
             <form onSubmit={handleAddObjective} className="flex gap-2">
               <input
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-                placeholder="Objective title"
+                placeholder="Objective 名稱"
                 value={objTitle}
                 onChange={e => setObjTitle(e.target.value)}
                 autoFocus
               />
-              <button type="submit" className="bg-teal-600 text-white text-sm px-4 py-2 rounded-lg">Add</button>
-              <button type="button" onClick={() => setShowObjForm(false)} className="text-sm text-gray-400 px-2">Cancel</button>
+              <button type="submit" className="bg-teal-600 text-white text-sm px-4 py-2 rounded-lg">新增</button>
+              <button type="button" onClick={() => setShowObjForm(false)} className="text-sm text-gray-400 px-2">取消</button>
             </form>
           ) : (
             <button onClick={() => setShowObjForm(true)} className="text-sm text-gray-400 hover:text-gray-700">
-              + Add Objective
+              + 新增 Objective
             </button>
           )}
         </div>

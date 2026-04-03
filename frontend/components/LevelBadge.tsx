@@ -7,10 +7,17 @@ const styles: Record<SignalLevel, string> = {
   pending: "bg-orange-100 text-orange-700 border border-orange-300",
 }
 
+const labels: Record<SignalLevel, string> = {
+  L1: "L1 已確立",
+  L2: "L2 承諾中",
+  L3: "L3 意識萌發",
+  pending: "待判斷",
+}
+
 export function LevelBadge({ level }: { level: SignalLevel }) {
   return (
     <span className={`text-xs font-semibold px-2 py-0.5 rounded ${styles[level]}`}>
-      {level === "pending" ? "待判斷" : level}
+      {labels[level]}
     </span>
   )
 }

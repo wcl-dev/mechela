@@ -6,11 +6,11 @@ import { uploadReport, getProvider } from "@/lib/api"
 import type { UploadResult } from "@/lib/types"
 
 const PROGRESS_STEPS = [
-  "Parsing document...",
-  "Extracting paragraphs and tables...",
-  "Detecting change signals...",
-  "Analysing with AI model...",
-  "Almost there...",
+  "正在解析文件...",
+  "擷取段落與表格中...",
+  "偵測改變 Signal 中...",
+  "AI 分析中...",
+  "即將完成...",
 ]
 
 export default function UploadPage() {
@@ -38,7 +38,6 @@ export default function UploadPage() {
       timerRef.current = setInterval(() => {
         const secs = Math.floor((Date.now() - start) / 1000)
         setElapsed(secs)
-        // Cycle through progress messages
         if (secs < 3) setProgressMsg(PROGRESS_STEPS[0])
         else if (secs < 6) setProgressMsg(PROGRESS_STEPS[1])
         else if (secs < 15) setProgressMsg(PROGRESS_STEPS[2])
@@ -65,7 +64,7 @@ export default function UploadPage() {
       const res = await uploadReport(fd)
       setResult(res)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Upload failed")
+      setError(err instanceof Error ? err.message : "上傳失敗")
     } finally {
       setLoading(false)
     }
@@ -74,26 +73,26 @@ export default function UploadPage() {
   return (
     <div className="max-w-xl">
       <div className="text-sm text-gray-400 mb-4">
-        <Link href="/" className="hover:text-gray-600">Projects</Link> /
+        <Link href="/" className="hover:text-gray-600">Project 列表</Link> /
         <Link href={`/projects/${id}`} className="hover:text-gray-600 ml-1">Project</Link> /
-        <span className="ml-1">Upload</span>
+        <span className="ml-1">上傳報告</span>
       </div>
-      <h1 className="text-xl font-semibold text-gray-900 mb-6">Upload Report</h1>
+      <h1 className="text-xl font-semibold text-gray-900 mb-6">上傳報告</h1>
 
       {!result ? (
         <form onSubmit={handleUpload} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Report name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">報告名稱</label>
             <input
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-              placeholder="e.g. Q1 2024"
+              placeholder="例如：2024 年第一季報"
               value={name}
               onChange={e => setName(e.target.value)}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Report date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">報告日期</label>
             <input
               type="date"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
@@ -103,7 +102,7 @@ export default function UploadPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">File (.docx only)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">檔案（僅限 .docx）</label>
             <input
               type="file"
               accept=".docx"
@@ -118,7 +117,7 @@ export default function UploadPage() {
             disabled={loading}
             className="w-full bg-teal-600 text-white py-2 rounded-lg text-sm hover:bg-teal-700 disabled:opacity-50"
           >
-            {loading ? "Processing..." : "Upload & Analyse"}
+            {loading ? "處理中..." : "上傳並分析"}
           </button>
           {loading && (
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -127,8 +126,8 @@ export default function UploadPage() {
                 <span className="text-sm text-gray-700">{progressMsg}</span>
               </div>
               <div className="text-xs text-gray-400">
-                {elapsed > 0 && `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")} elapsed`}
-                {isLlmMode && elapsed < 5 && " — AI analysis may take a few minutes"}
+                {elapsed > 0 && `已經過 ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`}
+                {isLlmMode && elapsed < 5 && " — AI 分析可能需要數分鐘"}
               </div>
             </div>
           )}
@@ -137,21 +136,21 @@ export default function UploadPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-green-600 text-lg">✓</span>
-            <span className="font-medium">Report processed</span>
+            <span className="font-medium">報告處理完成</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="text-gray-500">Paragraphs</div>
+              <div className="text-gray-500">段落數</div>
               <div className="font-semibold">{result.total_paragraphs}</div>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="text-gray-500">Signals detected</div>
+              <div className="text-gray-500">偵測到的 Signal</div>
               <div className="font-semibold">{result.signals_detected}</div>
             </div>
             <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="text-gray-500">Mode</div>
-              <div className="font-semibold capitalize">{result.mode}</div>
+              <div className="text-gray-500">分析模式</div>
+              <div className="font-semibold capitalize">{result.mode === "llm" ? "AI 模式" : "基礎模式"}</div>
             </div>
           </div>
 
@@ -172,13 +171,13 @@ export default function UploadPage() {
               onClick={() => router.push(`/projects/${id}/review/${result.report_id}`)}
               className="flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm hover:bg-teal-700"
             >
-              Start ABC Review →
+              開始審閱 Signal →
             </button>
             <button
               onClick={() => setResult(null)}
               className="text-sm text-gray-400 px-4 py-2 hover:text-gray-700"
             >
-              Upload another
+              再上傳一份
             </button>
           </div>
         </div>
