@@ -223,9 +223,9 @@ export default function ReviewPage() {
                   onChange={e => updateLevel(e.target.value)}
                   className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none"
                 >
-                  <option value="L1">L1 — 已確立的改變</option>
-                  <option value="L2">L2 — 承諾或試行</option>
-                  <option value="L3">L3 — 意識萌發</option>
+                  <option value="L1">L1 — 已改變</option>
+                  <option value="L2">L2 — 正在改變</option>
+                  <option value="L3">L3 — 有意改變</option>
                   <option value="pending">待判斷</option>
                 </select>
                 <button

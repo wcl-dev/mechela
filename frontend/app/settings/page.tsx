@@ -249,7 +249,7 @@ export default function SettingsPage() {
         {(["L1", "L2", "L3"] as const).map(level => (
           <div key={level}>
             <div className="text-sm font-medium text-gray-700 mb-2">
-              {level} — {level === "L1" ? "已確立的改變" : level === "L2" ? "承諾或試行" : "意識萌發"}
+              {level} — {level === "L1" ? "已改變" : level === "L2" ? "正在改變" : "有意改變"}
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2 min-h-6">
               {keywords[level].map(kw => (

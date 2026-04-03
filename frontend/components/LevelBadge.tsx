@@ -8,9 +8,9 @@ const styles: Record<SignalLevel, string> = {
 }
 
 const labels: Record<SignalLevel, string> = {
-  L1: "L1 已確立",
-  L2: "L2 承諾中",
-  L3: "L3 意識萌發",
+  L1: "L1 已改變",
+  L2: "L2 正在改變",
+  L3: "L3 有意改變",
   pending: "待判斷",
 }
 
