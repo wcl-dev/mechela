@@ -269,8 +269,3 @@ Signals start as **candidates** after upload. ABC Review moves them to **confirm
 - All settings are stored locally in `backend/user_settings.json`
 - See [docs/local-ai-evaluation.md](docs/local-ai-evaluation.md) for the full evaluation of local AI approaches
 
----
-
-## License
-
-MIT
