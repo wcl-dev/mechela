@@ -5,6 +5,7 @@ import Link from "next/link"
 import { getSignals, reviewSignal, getThreadSuggestions, getProject, createThread } from "@/lib/api"
 import { LevelBadge } from "@/components/LevelBadge"
 import { StatusBadge } from "@/components/StatusBadge"
+import { useToast } from "@/components/Toast"
 import type { Signal, Objective, ThreadCandidate } from "@/lib/types"
 
 export default function ReviewPage() {
@@ -21,6 +22,7 @@ export default function ReviewPage() {
   const [editingText, setEditingText] = useState(false)
   const [editText, setEditText] = useState("")
   const [textSaved, setTextSaved] = useState(false)
+  const { showToast } = useToast()
 
   useEffect(() => {
     getSignals(Number(reportId)).then(setSignals)
@@ -43,6 +45,10 @@ export default function ReviewPage() {
     }
   }
 
+  const statusLabels: Record<string, string> = {
+    confirmed: "已確認", rejected: "已排除", context: "標為背景脈絡",
+  }
+
   async function updateStatus(status: string) {
     if (!selected) return
     setSaving(true)
@@ -50,6 +56,7 @@ export default function ReviewPage() {
     setSignals(prev => prev.map(s => s.id === updated.id ? updated : s))
     setSelected(updated)
     setSaving(false)
+    showToast(statusLabels[status] || status)
   }
 
   async function updateLevel(level: string) {
@@ -66,6 +73,7 @@ export default function ReviewPage() {
     setSignals(prev => prev.map(s => s.id === updated.id ? updated : s))
     setSelected(updated)
     setSaving(false)
+    showToast("已確認並分配到 Thread")
   }
 
   async function handleCreateThread() {
@@ -163,9 +171,9 @@ export default function ReviewPage() {
                 {!editingText && (
                   <button
                     onClick={() => { setEditingText(true); setEditText(selected.text); setTextSaved(false) }}
-                    className="ml-2 text-teal-600 font-normal normal-case hover:underline"
+                    className="ml-2 text-teal-600 font-normal normal-case hover:underline inline-flex items-center gap-0.5"
                   >
-                    編輯
+                    &#9998; 編輯
                   </button>
                 )}
               </div>
@@ -238,6 +246,7 @@ export default function ReviewPage() {
                 <button
                   onClick={() => updateStatus("rejected")}
                   disabled={saving}
+                  title="這不是改變，例如只是描述一項活動或事件"
                   className="text-sm border border-red-200 text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50"
                 >
                   排除
@@ -245,6 +254,7 @@ export default function ReviewPage() {
                 <button
                   onClick={() => updateStatus("context")}
                   disabled={saving}
+                  title="這是外部環境的變化（如法規修訂），不算你的計畫成果，但值得記錄"
                   className="text-sm border border-purple-200 text-purple-600 px-3 py-1.5 rounded-lg hover:bg-purple-50 disabled:opacity-50"
                 >
                   背景脈絡

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { getProjects, createProject, deleteProject } from "@/lib/api"
+import { useToast } from "@/components/Toast"
 import type { Project } from "@/lib/types"
 
 export default function HomePage() {
@@ -10,6 +11,7 @@ export default function HomePage() {
   const [desc, setDesc] = useState("")
   const [creating, setCreating] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const { showToast } = useToast()
 
   useEffect(() => {
     getProjects().then(setProjects)
@@ -19,6 +21,7 @@ export default function HomePage() {
     if (!confirm(`確定要刪除「${name}」及所有相關資料嗎？此操作無法復原。`)) return
     await deleteProject(id)
     setProjects(prev => prev.filter(p => p.id !== id))
+    showToast(`已刪除「${name}」`)
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -28,6 +31,7 @@ export default function HomePage() {
     const p = await createProject(name.trim(), desc.trim() || undefined)
     setProjects(prev => [...prev, p])
     setName(""); setDesc(""); setShowForm(false); setCreating(false)
+    showToast(`已建立「${p.name}」`)
   }
 
   return (
@@ -91,7 +95,7 @@ export default function HomePage() {
                 <span className="text-sm text-gray-400">{p.objectives.length} 個 Objective</span>
                 <button
                   onClick={() => handleDelete(p.id, p.name)}
-                  className="text-xs text-gray-300 hover:text-red-500 transition-colors"
+                  className="text-xs text-red-400 border border-red-200 px-2 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
                 >
                   刪除
                 </button>

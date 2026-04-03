@@ -61,23 +61,23 @@ export default function ProjectPage() {
             onClick={handleExport}
             className="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100"
           >
-            匯出 Markdown
+            匯出報告
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3" title="Objective：這個計畫正在追蹤的改變目標">
           <div className="text-2xl font-semibold text-gray-400">{dashboard.objectives.length}</div>
           <div className="text-sm text-gray-500">Objective</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3" title="Thread：同一主題的改變線索，串連不同報告裡的 Signal">
           <div className="text-2xl font-semibold text-gray-400">
             {dashboard.objectives.flatMap(o => o.threads).length}
           </div>
           <div className="text-sm text-gray-500">Thread</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3" title="Signal：從報告中偵測到並經你確認的改變證據">
           <div className="text-2xl font-semibold text-gray-400">{totalSignals}</div>
           <div className="text-sm text-gray-500">已確認 Signal</div>
         </div>
@@ -182,10 +182,11 @@ export default function ProjectPage() {
                         </div>
                       ) : thread.progression_summary ? (
                         <p
-                          className="text-xs text-gray-500 italic cursor-pointer hover:text-gray-700"
+                          className="text-xs text-gray-500 italic cursor-pointer hover:text-gray-700 group flex items-start gap-1"
                           onClick={() => { setEditingSummary(thread.thread_id); setSummaryText(thread.progression_summary || "") }}
                         >
-                          {thread.progression_summary}
+                          <span>{thread.progression_summary}</span>
+                          <span className="opacity-0 group-hover:opacity-100 text-gray-400 shrink-0" title="點擊編輯">&#9998;</span>
                         </p>
                       ) : (
                         <button

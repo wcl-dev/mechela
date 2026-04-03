@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
+import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </div>
         </nav>
-        <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
+        <ToastProvider>
+          <main className="max-w-5xl mx-auto px-6 py-8">{children}</main>
+        </ToastProvider>
       </body>
     </html>
   );
