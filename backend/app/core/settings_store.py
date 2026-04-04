@@ -11,7 +11,7 @@ VALID_PROVIDERS = {"openai", "ollama"}
 PROVIDER_DEFAULTS = {
     "ollama": {
         "base_url": "http://localhost:11434/v1",
-        "chat_model": "phi4-mini",
+        "chat_model": "gemma3:4b",
         "embed_model": "nomic-embed-text",
     },
     "openai": {
@@ -89,9 +89,9 @@ def get_provider_config() -> dict:
             "embed_model": defaults["embed_model"],
         }
     return {
-        "base_url": data.get("ollama_base_url", defaults["base_url"]),
-        "chat_model": data.get("ollama_chat_model", defaults["chat_model"]),
-        "embed_model": data.get("ollama_embed_model", defaults["embed_model"]),
+        "base_url": data.get("ollama_base_url") or defaults["base_url"],
+        "chat_model": data.get("ollama_chat_model") or defaults["chat_model"],
+        "embed_model": data.get("ollama_embed_model") or defaults["embed_model"],
     }
 
 

@@ -51,8 +51,6 @@ export default function SettingsPage() {
       await setProvider({
         provider: "ollama",
         ollama_base_url: "http://localhost:11434/v1",
-        ollama_chat_model: "phi4-mini",
-        ollama_embed_model: "nomic-embed-text",
       })
     } else if (mode === "cloud") {
       await setProvider({

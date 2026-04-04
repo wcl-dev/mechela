@@ -1,7 +1,7 @@
 """
 Signal detector — dual mode:
 - Rule-based: keyword scoring, returns candidates with low confidence
-- LLM mode: OpenAI GPT-4o, returns structured L1/L2/L3 with confidence
+- LLM mode: OpenAI or Ollama, returns structured L1/L2/L3 with confidence
 """
 import re
 from dataclasses import dataclass
@@ -236,6 +236,22 @@ Level definitions (do NOT inflate — choose the lowest level that fits):
 - L1: Confirmed/institutionalized — the change is done (adopted, enacted, formally established, integrated)
 - L2: Committed intent or trial — concrete commitment exists (agreed to start, signed MOU, piloting)
 - L3: Awareness/interest only — no commitment yet (discussing, expressing interest, growing awareness)
+
+## Examples
+
+Paragraph: "The Ministry of Education formally adopted the new inclusive education policy in March 2024, requiring all public schools to integrate accessibility standards into their curricula."
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L1", "subject": "Ministry of Education", "signal_type": "institutional", "confidence": 0.92, "reasoning": "The ministry has formally adopted a policy — this is a confirmed institutional change."}
+
+Paragraph: "The two municipalities signed a memorandum of understanding to jointly develop a cross-border water management framework over the next 18 months."
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L2", "subject": "The two municipalities", "signal_type": "institutional", "confidence": 0.75, "reasoning": "An MOU was signed with a concrete plan, but the framework is not yet implemented — committed intent."}
+
+Paragraph: "Local government leaders expressed interest in replicating the community health model after attending the regional showcase event."
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L3", "subject": "Local government leaders", "signal_type": "relational", "confidence": 0.55, "reasoning": "Interest was expressed but no commitment or concrete action was taken — awareness only."}
+
+Paragraph: "The project team conducted 12 training workshops across 5 provinces, reaching a total of 340 participants including teachers and school administrators."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes an activity performed by the project team, not a durable state change in an external actor."}
+
+## Output format
 
 You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fences or add any other text.
 
