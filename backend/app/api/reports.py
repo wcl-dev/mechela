@@ -204,6 +204,39 @@ async def redetect_signals(report_id: int, db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.delete("/{report_id}")
+async def delete_report(report_id: int, db: AsyncSession = Depends(get_db)):
+    report = await db.get(Report, report_id)
+    if not report:
+        raise HTTPException(404, "Report not found")
+
+    # Delete thread_signal links for all signals in this report
+    anchors_result = await db.execute(
+        select(Anchor).where(Anchor.report_id == report.id)
+    )
+    for anchor in anchors_result.scalars().all():
+        signals_result = await db.execute(
+            select(Signal).where(Signal.anchor_id == anchor.id)
+        )
+        for sig in signals_result.scalars().all():
+            ts_result = await db.execute(
+                select(ThreadSignal).where(ThreadSignal.signal_id == sig.id)
+            )
+            for ts in ts_result.scalars().all():
+                await db.delete(ts)
+
+    # Delete the report (cascades to anchors → signals)
+    await db.delete(report)
+    await db.commit()
+
+    # Delete uploaded file from disk
+    fp = Path(report.file_path) if report.file_path else None
+    if fp and fp.exists():
+        fp.unlink()
+
+    return {"ok": True}
+
+
 @router.get("/project/{project_id}", response_model=list[ReportOut])
 async def list_reports(project_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

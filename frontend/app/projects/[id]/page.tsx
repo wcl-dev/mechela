@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { getDashboard, createObjective, exportMarkdown, getReports, redetectReport, updateThread, updateProject, updateObjective } from "@/lib/api"
+import { getDashboard, createObjective, exportMarkdown, getReports, redetectReport, deleteReport, updateThread, deleteThread, updateProject, updateObjective, deleteObjective } from "@/lib/api"
 import { useToast } from "@/components/Toast"
 import { LevelBadge } from "@/components/LevelBadge"
 import type { Dashboard } from "@/lib/types"
@@ -188,6 +188,18 @@ export default function ProjectPage() {
                   >
                     審閱
                   </Link>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`確定要刪除報告「${r.name}」嗎？該報告的所有 Signal 也會一併刪除。`)) return
+                      await deleteReport(r.id)
+                      getReports(projectId).then(setReports)
+                      reload()
+                      showToast(`已刪除報告「${r.name}」`)
+                    }}
+                    className="text-xs text-red-400 border border-red-200 px-2 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    刪除
+                  </button>
                 </div>
               </div>
             ))}
@@ -214,12 +226,29 @@ export default function ProjectPage() {
                 autoFocus
               />
             ) : (
-              <div
-                className="font-medium text-gray-900 mb-4 group cursor-pointer inline-flex items-center gap-1.5"
-                onClick={() => { setEditingObjId(obj.objective_id); setEditObjTitle(obj.objective_title) }}
-              >
-                {obj.objective_title}
-                <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-sm" title="點擊編輯名稱">&#9998;</span>
+              <div className="flex items-center justify-between mb-4">
+                <div
+                  className="font-medium text-gray-900 group cursor-pointer inline-flex items-center gap-1.5"
+                  onClick={() => { setEditingObjId(obj.objective_id); setEditObjTitle(obj.objective_title) }}
+                >
+                  {obj.objective_title}
+                  <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-sm" title="點擊編輯名稱">&#9998;</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    const threadCount = obj.threads.length
+                    const msg = threadCount > 0
+                      ? `確定要刪除 Objective「${obj.objective_title}」嗎？底下的 ${threadCount} 個 Thread 也會一併刪除。`
+                      : `確定要刪除 Objective「${obj.objective_title}」嗎？`
+                    if (!confirm(msg)) return
+                    await deleteObjective(projectId, obj.objective_id)
+                    reload()
+                    showToast(`已刪除 Objective「${obj.objective_title}」`)
+                  }}
+                  className="text-xs text-red-400 border border-red-200 px-2 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                >
+                  刪除
+                </button>
               </div>
             )}
             {obj.threads.length === 0 ? (
@@ -248,7 +277,24 @@ export default function ProjectPage() {
                           <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-xs" title="點擊編輯名稱">&#9998;</span>
                         </span>
                       )}
-                      <span className="text-xs text-gray-400 shrink-0">{thread.signal_count} 個 Signal</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-gray-400">{thread.signal_count} 個 Signal</span>
+                        {obj.threads.length > 1 && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`確定要刪除 Thread「${thread.statement}」嗎？其中的 Signal 會轉移到同 Objective 下的其他 Thread。`)) return
+                              const target = obj.threads.find(t => t.thread_id !== thread.thread_id)
+                              if (!target) return
+                              await deleteThread(thread.thread_id, target.thread_id)
+                              reload()
+                              showToast(`已刪除 Thread`)
+                            }}
+                            className="text-xs text-red-400 border border-red-200 px-1.5 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                          >
+                            刪除
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {/* 進展摘要 */}
                     <div className="mb-2">

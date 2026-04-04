@@ -43,6 +43,8 @@ export const updateObjective = (projectId: number, objectiveId: number, data: { 
     method: "PATCH",
     body: JSON.stringify(data),
   })
+export const deleteObjective = (projectId: number, objectiveId: number) =>
+  req<{ ok: boolean }>(`/projects/${projectId}/objectives/${objectiveId}`, { method: "DELETE" })
 
 // Reports
 export const getReports = (projectId: number) =>
@@ -52,6 +54,8 @@ export const uploadReport = (formData: FormData) =>
 export const getSignals = (reportId: number) => req<Signal[]>(`/reports/${reportId}/signals`)
 export const redetectReport = (reportId: number) =>
   req<UploadResult & { previous_confirmed_replaced: number }>(`/reports/${reportId}/redetect`, { method: "POST" })
+export const deleteReport = (reportId: number) =>
+  req<{ ok: boolean }>(`/reports/${reportId}`, { method: "DELETE" })
 
 // Signals
 export const reviewSignal = (

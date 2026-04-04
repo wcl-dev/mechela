@@ -104,3 +104,15 @@ async def update_objective(
     await db.commit()
     await db.refresh(obj)
     return obj
+
+
+@router.delete("/{project_id}/objectives/{objective_id}")
+async def delete_objective(
+    project_id: int, objective_id: int, db: AsyncSession = Depends(get_db)
+):
+    obj = await db.get(Objective, objective_id)
+    if not obj or obj.project_id != project_id:
+        raise HTTPException(404, "Objective not found")
+    await db.delete(obj)
+    await db.commit()
+    return {"ok": True}
