@@ -1,10 +1,10 @@
 """
 Model quality comparison script.
-Compares rule-based vs Ollama (phi4-mini) signal detection on test DOCX files.
+Compares rule-based vs Ollama (gemma3:4b) signal detection on test DOCX files.
 
 Usage:
   1. Make sure Ollama is running: ollama serve
-  2. Make sure phi4-mini is pulled: ollama pull phi4-mini
+  2. Make sure gemma3:4b is pulled: ollama pull gemma3:4b
   3. Run: python test_model_quality.py
 
   Without Ollama, only rule-based results will be shown.
@@ -22,7 +22,7 @@ from app.services.detector import detect_rule_based, detect_llm
 
 TEST_DIR = Path(__file__).parent.parent / "demo"
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
-OLLAMA_MODEL = "phi4-mini"
+OLLAMA_MODEL = "gemma3:4b"
 
 
 def print_header(title: str):
@@ -98,10 +98,10 @@ async def run_comparison(file_path: Path, ollama_available: bool):
         try:
             llm_signals = await detect_llm(anchors, client, OLLAMA_MODEL)
             llm_time = time.time() - t0
-            print_signals(llm_signals, f"Ollama/phi4-mini ({llm_time:.1f}s)")
+            print_signals(llm_signals, f"Ollama/{OLLAMA_MODEL} ({llm_time:.1f}s)")
         except Exception as e:
             llm_time = time.time() - t0
-            print(f"  [Ollama/phi4-mini] Error after {llm_time:.1f}s: {e}")
+            print(f"  [Ollama/{OLLAMA_MODEL}] Error after {llm_time:.1f}s: {e}")
 
     return {
         "file": file_path.name,
@@ -133,7 +133,7 @@ async def main():
         print("  Ollama is available. Will compare both modes.")
     else:
         print("  Ollama not available. Showing rule-based only.")
-        print("  To test LLM: install Ollama, run 'ollama pull phi4-mini', then 'ollama serve'")
+        print(f"  To test LLM: install Ollama, run 'ollama pull {OLLAMA_MODEL}', then 'ollama serve'")
 
     # Run comparisons
     results = []

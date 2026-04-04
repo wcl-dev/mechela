@@ -41,16 +41,16 @@ if %errorlevel% neq 0 (
 
 :: Pull chat model
 echo.
-echo [..] Pulling phi4-mini chat model (~2.5 GB)...
+echo [..] Pulling gemma3:4b chat model (~3.3 GB)...
 echo     This may take a few minutes on first run.
-ollama pull phi4-mini
+ollama pull gemma3:4b
 if %errorlevel% neq 0 (
-    echo [ERROR] Failed to pull phi4-mini. Is Ollama running?
+    echo [ERROR] Failed to pull gemma3:4b. Is Ollama running?
     echo   Try: ollama serve   (in another terminal)
     pause
     exit /b 1
 )
-echo [OK] phi4-mini ready.
+echo [OK] gemma3:4b ready.
 
 :: Pull embedding model
 echo.

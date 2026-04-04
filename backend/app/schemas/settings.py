@@ -24,7 +24,7 @@ class ProviderConfig(BaseModel):
     provider: str  # "openai" | "ollama" | "rule-based"
     openai_api_key: str | None = None
     ollama_base_url: str = "http://localhost:11434/v1"
-    ollama_chat_model: str = "phi4-mini"
+    ollama_chat_model: str = "gemma3:4b"
     ollama_embed_model: str = "nomic-embed-text"
 
 

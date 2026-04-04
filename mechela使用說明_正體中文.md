@@ -249,7 +249,7 @@ Mechela 有三種運作模式，你可以在 Settings 頁面切換：
 如果你希望用 AI 分析但不想把報告內容傳到外部伺服器，使用 Local AI 模式：
 
 1. 在 `mechela` 資料夾裡，雙擊 `setup_local_ai.bat`（Windows）或在終端機執行 `./setup_local_ai.sh`（Mac/Linux）
-2. 腳本會自動安裝 Ollama 並下載所需的 AI 模型（約 2.8 GB，只需下載一次）
+2. 腳本會自動安裝 Ollama 並下載所需的 AI 模型（約 3.6 GB，只需下載一次���
 3. 安裝完成後，到 Mechela 的 Settings 頁面，選擇「**Local AI**」，然後按「**Save**」
 4. 按「**Test Connection**」確認顯示綠色的「Connected」
 
