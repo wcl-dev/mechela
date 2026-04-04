@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.models.project import Project, Objective
 from app.models.report import Report
-from app.schemas.project import ProjectCreate, ProjectOut, ObjectiveCreate, ObjectiveOut
+from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectOut, ObjectiveCreate, ObjectiveUpdate, ObjectiveOut
 import os
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -44,6 +44,19 @@ async def get_project(project_id: int, db: AsyncSession = Depends(get_db)):
     return project
 
 
+@router.patch("/{project_id}", response_model=ProjectOut)
+async def update_project(
+    project_id: int, body: ProjectUpdate, db: AsyncSession = Depends(get_db)
+):
+    project = await db.get(Project, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(project, k, v)
+    await db.commit()
+    return await _get_project_with_objectives(project.id, db)
+
+
 @router.delete("/{project_id}")
 async def delete_project(project_id: int, db: AsyncSession = Depends(get_db)):
     project = await db.execute(
@@ -74,6 +87,20 @@ async def create_objective(
         raise HTTPException(404, "Project not found")
     obj = Objective(project_id=project_id, **body.model_dump())
     db.add(obj)
+    await db.commit()
+    await db.refresh(obj)
+    return obj
+
+
+@router.patch("/{project_id}/objectives/{objective_id}", response_model=ObjectiveOut)
+async def update_objective(
+    project_id: int, objective_id: int, body: ObjectiveUpdate, db: AsyncSession = Depends(get_db)
+):
+    obj = await db.get(Objective, objective_id)
+    if not obj or obj.project_id != project_id:
+        raise HTTPException(404, "Objective not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(obj, k, v)
     await db.commit()
     await db.refresh(obj)
     return obj

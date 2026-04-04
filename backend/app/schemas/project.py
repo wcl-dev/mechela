@@ -15,8 +15,18 @@ class ObjectiveOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ObjectiveUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+
+
 class ProjectCreate(BaseModel):
     name: str
+    description: str | None = None
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
     description: str | None = None
 
 

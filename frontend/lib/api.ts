@@ -26,12 +26,22 @@ export const createProject = (name: string, description?: string) =>
     body: JSON.stringify({ name, description }),
   })
 export const getProject = (id: number) => req<Project>(`/projects/${id}`)
+export const updateProject = (id: number, data: { name?: string; description?: string }) =>
+  req<Project>(`/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
 export const deleteProject = (id: number) =>
   req<{ ok: boolean }>(`/projects/${id}`, { method: "DELETE" })
 export const createObjective = (projectId: number, title: string, description?: string) =>
   req<Objective>(`/projects/${projectId}/objectives`, {
     method: "POST",
     body: JSON.stringify({ title, description }),
+  })
+export const updateObjective = (projectId: number, objectiveId: number, data: { title?: string; description?: string }) =>
+  req<Objective>(`/projects/${projectId}/objectives/${objectiveId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
   })
 
 // Reports

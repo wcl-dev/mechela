@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { getDashboard, createObjective, exportMarkdown, getReports, redetectReport, updateThread } from "@/lib/api"
+import { getDashboard, createObjective, exportMarkdown, getReports, redetectReport, updateThread, updateProject, updateObjective } from "@/lib/api"
+import { useToast } from "@/components/Toast"
 import { LevelBadge } from "@/components/LevelBadge"
 import type { Dashboard } from "@/lib/types"
 
@@ -16,25 +17,67 @@ export default function ProjectPage() {
   const [exported, setExported] = useState("")
   const [redetecting, setRedetecting] = useState<number | null>(null)
   const [redetectResult, setRedetectResult] = useState<string | null>(null)
+  const { showToast } = useToast()
+
+  // Inline edit states
   const [editingSummary, setEditingSummary] = useState<number | null>(null)
   const [summaryText, setSummaryText] = useState("")
+  const [editingProjectName, setEditingProjectName] = useState(false)
+  const [editProjectName, setEditProjectName] = useState("")
+  const [editingObjId, setEditingObjId] = useState<number | null>(null)
+  const [editObjTitle, setEditObjTitle] = useState("")
+  const [editingThreadId, setEditingThreadId] = useState<number | null>(null)
+  const [editThreadStmt, setEditThreadStmt] = useState("")
 
   useEffect(() => {
     getDashboard(projectId).then(setDashboard)
     getReports(projectId).then(setReports)
   }, [projectId])
 
+  const reload = () => getDashboard(projectId).then(setDashboard)
+
   async function handleAddObjective(e: React.FormEvent) {
     e.preventDefault()
     if (!objTitle.trim()) return
     await createObjective(projectId, objTitle.trim())
     setObjTitle(""); setShowObjForm(false)
-    getDashboard(projectId).then(setDashboard)
+    reload()
+    showToast("已新增 Objective")
   }
 
   async function handleExport() {
     const result = await exportMarkdown(projectId)
     setExported(result.markdown)
+  }
+
+  async function saveProjectName() {
+    if (!editProjectName.trim() || editProjectName === dashboard?.project_name) {
+      setEditingProjectName(false); return
+    }
+    await updateProject(projectId, { name: editProjectName.trim() })
+    setEditingProjectName(false)
+    reload()
+    showToast("Project 名稱已更新")
+  }
+
+  async function saveObjTitle(objId: number, original: string) {
+    if (!editObjTitle.trim() || editObjTitle === original) {
+      setEditingObjId(null); return
+    }
+    await updateObjective(projectId, objId, { title: editObjTitle.trim() })
+    setEditingObjId(null)
+    reload()
+    showToast("Objective 名稱已更新")
+  }
+
+  async function saveThreadStmt(threadId: number, original: string) {
+    if (!editThreadStmt.trim() || editThreadStmt === original) {
+      setEditingThreadId(null); return
+    }
+    await updateThread(threadId, { statement: editThreadStmt.trim() })
+    setEditingThreadId(null)
+    reload()
+    showToast("Thread 名稱已更新")
   }
 
   if (!dashboard) return <div className="text-sm text-gray-400 py-8">載入中...</div>
@@ -48,7 +91,25 @@ export default function ProjectPage() {
           <div className="text-sm text-gray-500 mb-1">
             <Link href="/" className="text-gray-500 hover:text-gray-800">Project 列表</Link> /
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">{dashboard.project_name}</h1>
+          {/* Project 名稱 inline edit */}
+          {editingProjectName ? (
+            <input
+              className="text-xl font-semibold text-gray-900 border-b-2 border-teal-400 outline-none bg-transparent w-80"
+              value={editProjectName}
+              onChange={e => setEditProjectName(e.target.value)}
+              onBlur={saveProjectName}
+              onKeyDown={e => { if (e.key === "Enter") saveProjectName(); if (e.key === "Escape") setEditingProjectName(false) }}
+              autoFocus
+            />
+          ) : (
+            <h1
+              className="text-xl font-semibold text-gray-900 group cursor-pointer inline-flex items-center gap-1.5"
+              onClick={() => { setEditingProjectName(true); setEditProjectName(dashboard.project_name) }}
+            >
+              {dashboard.project_name}
+              <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-sm" title="點擊編輯名稱">&#9998;</span>
+            </h1>
+          )}
         </div>
         <div className="flex gap-2">
           <Link
@@ -87,7 +148,7 @@ export default function ProjectPage() {
         <div className="mb-6 bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Markdown 匯出</span>
-            <button onClick={() => { navigator.clipboard.writeText(exported); }} className="text-xs text-gray-400 hover:text-gray-700">複製</button>
+            <button onClick={() => { navigator.clipboard.writeText(exported); showToast("已複製到剪貼簿") }} className="text-xs text-gray-400 hover:text-gray-700">複製</button>
           </div>
           <pre className="text-xs text-gray-600 whitespace-pre-wrap max-h-64 overflow-y-auto">{exported}</pre>
         </div>
@@ -113,7 +174,7 @@ export default function ProjectPage() {
                       try {
                         const res = await redetectReport(r.id)
                         setRedetectResult(`${r.name}：偵測到 ${res.signals_detected} 個 Signal（${res.mode === "llm" ? "AI 模式" : "基礎模式"}）`)
-                        getDashboard(projectId).then(setDashboard)
+                        reload()
                       } catch { setRedetectResult("重新分析失敗。") }
                       finally { setRedetecting(null) }
                     }}
@@ -142,7 +203,25 @@ export default function ProjectPage() {
       <div className="space-y-6">
         {dashboard.objectives.map(obj => (
           <div key={obj.objective_id} className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="font-medium text-gray-900 mb-4">{obj.objective_title}</div>
+            {/* Objective 名稱 inline edit */}
+            {editingObjId === obj.objective_id ? (
+              <input
+                className="font-medium text-gray-900 mb-4 border-b-2 border-teal-400 outline-none bg-transparent w-full"
+                value={editObjTitle}
+                onChange={e => setEditObjTitle(e.target.value)}
+                onBlur={() => saveObjTitle(obj.objective_id, obj.objective_title)}
+                onKeyDown={e => { if (e.key === "Enter") saveObjTitle(obj.objective_id, obj.objective_title); if (e.key === "Escape") setEditingObjId(null) }}
+                autoFocus
+              />
+            ) : (
+              <div
+                className="font-medium text-gray-900 mb-4 group cursor-pointer inline-flex items-center gap-1.5"
+                onClick={() => { setEditingObjId(obj.objective_id); setEditObjTitle(obj.objective_title) }}
+              >
+                {obj.objective_title}
+                <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-sm" title="點擊編輯名稱">&#9998;</span>
+              </div>
+            )}
             {obj.threads.length === 0 ? (
               <div className="text-sm text-gray-400">尚未建立 Thread。上傳報告並完成審閱後，這裡會出現改變線索。</div>
             ) : (
@@ -150,7 +229,25 @@ export default function ProjectPage() {
                 {obj.threads.map(thread => (
                   <div key={thread.thread_id} className="border border-gray-100 rounded-lg p-3">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-sm font-medium text-gray-800">{thread.statement}</span>
+                      {/* Thread 名稱 inline edit */}
+                      {editingThreadId === thread.thread_id ? (
+                        <input
+                          className="text-sm font-medium text-gray-800 border-b-2 border-teal-400 outline-none bg-transparent flex-1"
+                          value={editThreadStmt}
+                          onChange={e => setEditThreadStmt(e.target.value)}
+                          onBlur={() => saveThreadStmt(thread.thread_id, thread.statement)}
+                          onKeyDown={e => { if (e.key === "Enter") saveThreadStmt(thread.thread_id, thread.statement); if (e.key === "Escape") setEditingThreadId(null) }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="text-sm font-medium text-gray-800 group cursor-pointer inline-flex items-center gap-1"
+                          onClick={() => { setEditingThreadId(thread.thread_id); setEditThreadStmt(thread.statement) }}
+                        >
+                          {thread.statement}
+                          <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-xs" title="點擊編輯名稱">&#9998;</span>
+                        </span>
+                      )}
                       <span className="text-xs text-gray-400 shrink-0">{thread.signal_count} 個 Signal</span>
                     </div>
                     {/* 進展摘要 */}
@@ -170,7 +267,7 @@ export default function ProjectPage() {
                               onClick={async () => {
                                 await updateThread(thread.thread_id, { progression_summary: summaryText.trim() })
                                 setEditingSummary(null)
-                                getDashboard(projectId).then(setDashboard)
+                                reload()
                               }}
                               className="text-xs bg-teal-600 text-white px-3 py-1 rounded-lg hover:bg-teal-700"
                             >儲存</button>
