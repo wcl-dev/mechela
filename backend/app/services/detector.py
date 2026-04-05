@@ -36,60 +36,120 @@ ACTIVITY_OBJECTS = {
 }
 
 L1_KEYWORDS = {
-    # Institutional action — confirmed, past tense
-    "mandated", "institutionalized", "enacted", "formalized", "ratified",
-    "gazetted", "came into force", "entered into force", "took effect",
-    "formally adopted", "officially adopted", "formally incorporated",
-    "officially incorporated", "formally established", "officially established",
-    "formally launched", "officially launched", "officially endorsed",
-    "formally endorsed", "officially recognized", "formally recognized",
-    "officially gazetted", "signed into law",
-    # Membership / coalition
+    # ── Adopt / Enact (政策通過) ──
+    "formally adopted", "officially adopted", "was adopted", "were adopted",
+    "has adopted", "have adopted", "has been adopted",
+    "enacted", "was enacted", "has been enacted",
+    "ratified", "was ratified", "has been ratified",
+    "signed into law", "passed into law", "codified",
+    # ── Establish / Institutionalize (制度建立) ──
+    "formally established", "officially established",
+    "was established", "were established", "has been established",
+    "has established", "have established",
+    "institutionalized", "was institutionalized",
+    "operationalized", "was operationalized",
+    "mainstreamed", "was mainstreamed",
+    # ── Formalize / Incorporate (正式納入) ──
+    "formalized", "was formalized", "has been formalized",
+    "formally incorporated", "officially incorporated",
+    "was integrated", "has been integrated", "integrated into",
+    "embedded into", "embedded in",
+    # ── Launch / Endorse / Recognize (啟動/背書/承認) ──
+    "formally launched", "officially launched",
+    "formally endorsed", "officially endorsed",
+    "formally recognized", "officially recognized",
+    "mandated", "gazetted", "officially gazetted",
+    # ── Legal force (生效) ──
+    "came into force", "entered into force", "took effect",
+    "now requires", "now mandates",
+    # ── Membership / Coalition (加入/結盟) ──
     "agreed to join", "joined the coalition", "agreed to cooperate",
-    # Agreement language
-    "both sides agreed", "legislators agreed", "has been adopted",
-    "has adopted", "have adopted", "has established", "have established",
-    # Legacy / mandate
-    "now requires", "now mandates", "approved",
+    "agreed to participate", "persuaded to join",
+    # ── Reform / Replace (改革/取代) ──
+    "was reformed", "has been reformed",
+    "was amended", "has been amended",
+    "was replaced", "has been replaced",
+    # ── Agreement language (合意) ──
+    "both sides agreed", "legislators agreed",
+    "approved", "unanimously approved",
     # Chinese
     "制度化", "正式採納", "通過", "確立", "同意加入",
+    "納入", "生效", "頒布", "修訂",
 }
 
 L2_KEYWORDS = {
-    # Commitment / intent with concrete action
-    "committed to", "agreed to establish", "agreed to develop",
-    "agreed to implement", "agreed to integrate", "agreed to produce",
-    "agreed to start", "agreed to collaborate", "agreed to work",
-    "agreed to create", "agreed to conduct",
-    # MOU / formal agreement signed
+    # ── Agreed to [verb] (同意做某事) ──
+    "agreed to establish", "agreed to develop", "agreed to implement",
+    "agreed to integrate", "agreed to produce", "agreed to start",
+    "agreed to collaborate", "agreed to work", "agreed to create",
+    "agreed to conduct", "agreed to focus", "agreed to adopt",
+    "agreed to support", "agreed to review",
+    "it was agreed", "the group agreed",
+    # ── Committed / Pledged (承諾) ──
+    "committed to", "committed to establish", "committed to develop",
+    "pledged to", "resolved to", "undertook to",
+    "expressed commitment",
+    # ── MOU / Formal agreement (簽署協議) ──
     "signed a memorandum", "signed an mou", "memorandum of understanding",
     "signed a letter of intent", "signed an agreement",
-    # Planning / in progress
-    "planning to", "in process of", "piloting", "aiming to adopt",
-    "intends to adopt", "will begin adopting", "preparing to implement",
-    "moving toward", "expressed commitment", "committed to establish",
-    "committed to develop",
+    "entered into an agreement", "entered into a partnership",
+    # ── Planning / In progress (規劃/進行中) ──
+    "planning to", "in process of", "in the process of",
+    "piloting", "pilot program", "trial phase",
+    "aiming to adopt", "intends to adopt", "intends to implement",
+    "will begin adopting", "preparing to implement", "preparing to adopt",
+    # ── Directional movement (朝向) ──
+    "moving toward", "working toward", "transitioning to",
+    "shifting toward", "significant step toward",
+    # ── Initiation (啟動行動) ──
+    "established contacts", "initiated discussions", "initiated engagement",
+    "embarked on", "commenced", "set up a",
+    "formed a committee", "formed a coalition", "formed a working group",
+    "laid the groundwork", "setting the stage",
+    "proposed organizing", "proposed creating",
     # Chinese
     "計畫導入", "承諾", "試行", "初步同意",
+    "啟動", "籌備", "著手",
 }
 
 L3_KEYWORDS = {
-    # Interest / awareness without commitment
-    "expressed interest", "expressed strong interest", "showed interest",
+    # ── Interest (興趣) ──
+    "expressed interest", "expressed strong interest",
+    "showed interest", "showed a high level of interest",
+    "high level of interest",
     "indicated interest", "expressed interest in adopting",
-    "growing awareness of", "beginning to understand",
-    "beginning to recognize", "showing interest in",
-    "recognition of the need", "raised awareness about",
-    "starting to consider", "considering", "exploring the possibility",
+    "showing interest in", "displayed interest",
+    "receptive to", "open to exploring", "open to adopting",
+    "expressed willingness", "willing to consider",
+    # ── Awareness (意識/認知) ──
+    "growing awareness of", "heightened awareness", "gaining awareness",
+    "raised awareness", "raising awareness",
+    "became aware of", "becoming aware of",
+    "beginning to understand", "beginning to recognize",
+    "beginning to explore",
+    "recognition of the need", "recognized the need",
+    "acknowledged the need", "acknowledged the importance",
+    # ── Considering / Exploring (考慮/探索) ──
+    "starting to consider", "considering",
+    "exploring the possibility", "exploring options",
+    "lean toward", "leaning toward",
+    "discussing the possibility", "debating whether",
+    "prompted to", "curious about",
+    # ── Early-stage engagement (初步接觸) ──
     "legislators are now", "stakeholders acknowledge",
+    "initial dialogue", "preliminary discussions",
+    "first exposure to",
     # Chinese
     "表達興趣", "開始意識到", "討論中",
+    "有意願", "初步接觸", "認知到",
 }
 
 CONTEXT_SECTION_NAMES = {"background", "context"}
 
 # Sections where signals are unlikely to be valid
-SKIP_SECTIONS = {"proposed activities", "challenges", "lessons"}
+# Note: parser tags sections by keyword, so "proposed activities" → "activities".
+# Only skip sections that are clearly not about observed changes.
+SKIP_SECTIONS: set[str] = set()
 
 
 @dataclass
@@ -157,18 +217,18 @@ def _score_rule(
     if activity_hits > 0 and (l1_hits + l2_hits + l3_hits) == 0:
         return None, 0.0
 
-    # L2/L3 pointing at activity objects → not a real signal
-    if l1_hits == 0 and _has_activity_object(text):
-        return None, 0.0
-
     external_bonus = 0.1 if _has_external_subject(text) else 0.0
+    # Activity objects (workshop, session, etc.) reduce confidence but don't eliminate signals
+    activity_penalty = -0.15 if (l1_hits == 0 and _has_activity_object(text)) else 0.0
 
     if l1_hits > 0:
         return SignalLevel.L1, min(0.55 + l1_hits * 0.1 + external_bonus, 0.85)
     if l2_hits > 0:
-        return SignalLevel.L2, min(0.45 + l2_hits * 0.1 + external_bonus, 0.70)
+        conf = max(0.25, min(0.45 + l2_hits * 0.1 + external_bonus + activity_penalty, 0.70))
+        return SignalLevel.L2, conf
     if l3_hits > 0:
-        return SignalLevel.L3, min(0.35 + l3_hits * 0.1 + external_bonus, 0.60)
+        conf = max(0.20, min(0.35 + l3_hits * 0.1 + external_bonus + activity_penalty, 0.60))
+        return SignalLevel.L3, conf
 
     return None, 0.0
 
