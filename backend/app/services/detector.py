@@ -174,6 +174,26 @@ def _is_heading(text: str) -> bool:
     return False
 
 
+# Patterns for structural / non-narrative text (indicators, metrics, metadata)
+_STRUCTURAL_PATTERNS = re.compile(
+    r'(?i)'
+    r'(?:^indicator\s+\d)'             # "Indicator 1.3: ..."
+    r'|(?:output total for reporting)'  # "Output total for reporting period"
+    r'|(?:cumulative output)'           # "Cumulative output for project"
+    r'|(?:\(target:\s*\d)'             # "(target: 1)"
+    r'|(?:^organization name\s*:)'     # metadata fields
+    r'|(?:^project (?:title|code)\s*:)'
+    r'|(?:^reporting period\s*:?)'
+    r'|(?:^grant (?:number|dates)\s*:)'
+    r'|(?:^(?:sub)?grantee\s*:)'
+)
+
+
+def _is_structural(text: str) -> bool:
+    """Filter out indicator definitions, metric summaries, and metadata fields."""
+    return bool(_STRUCTURAL_PATTERNS.search(text.strip()))
+
+
 def _has_activity_object(text: str) -> bool:
     """Check if intent keywords are directed at activities rather than state changes."""
     lower = text.lower()
@@ -250,6 +270,9 @@ def detect_rule_based(anchors: list[ParsedAnchor]) -> list[DetectedSignal]:
         # Skip sections where signals are unlikely
         if anchor.section in SKIP_SECTIONS:
             continue
+        # Skip structural text (indicators, metrics, metadata)
+        if _is_structural(anchor.text):
+            continue
 
         is_context_section = anchor.section in CONTEXT_SECTION_NAMES
         level, confidence = _score_rule(anchor.text, custom_l1, custom_l2, custom_l3)
@@ -311,6 +334,18 @@ Answer: {"is_signal": true, "is_context_signal": false, "level": "L3", "subject"
 Paragraph: "The project team conducted 12 training workshops across 5 provinces, reaching a total of 340 participants including teachers and school administrators."
 Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes an activity performed by the project team, not a durable state change in an external actor."}
 
+Paragraph: "The following are screening criteria; priority will be given to those that meet more of them."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This is a transitional sentence introducing methodology, not a change in any actor."}
+
+Paragraph: "We hosted an Open Internet Forum on Aug 18, which is a monthly event co-organized by our organization and communities concerned with Internet freedom."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes an event organized by the reporting team — an activity, not a state change."}
+
+Paragraph: "The workshop gathers stakeholders from various sectors including civil society organizations, criminal investigation agencies, and online platform operators."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes who attended an event — participant composition, not a durable change."}
+
+Paragraph: "To address this, we have consulted with numerous technical experts while continuously identifying new potential partners and resources."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes the reporting organization's own outreach activity, not an external actor changing state."}
+
 ## Output format
 
 You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fences or add any other text.
@@ -326,6 +361,9 @@ You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fen
 }"""
 
     for anchor in anchors:
+        # Skip structural text before calling LLM (save API calls)
+        if _is_heading(anchor.text) or _is_structural(anchor.text):
+            continue
         try:
             response = await client.chat.completions.create(
                 model=model,
@@ -380,6 +418,17 @@ You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fen
             continue
         # Skip signals from sections unlikely to contain real changes
         if anchor and anchor.section in SKIP_SECTIONS:
+            continue
+        # Skip low-confidence signals (small models tend to inflate)
+        if s.confidence < 0.4:
+            continue
+        # Activity-only paragraphs: if text has activity verbs but zero
+        # signal-keyword hits, it's likely a false positive from the LLM
+        activity_hits = _kw_match(s.text, ACTIVITY_VERBS)
+        signal_hits = (_kw_match(s.text, L1_KEYWORDS)
+                       + _kw_match(s.text, L2_KEYWORDS)
+                       + _kw_match(s.text, L3_KEYWORDS))
+        if activity_hits > 0 and signal_hits == 0:
             continue
         filtered.append(s)
     return filtered
