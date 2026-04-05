@@ -337,11 +337,11 @@ Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject
 Paragraph: "The following are screening criteria; priority will be given to those that meet more of them."
 Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This is a transitional sentence introducing methodology, not a change in any actor."}
 
-Paragraph: "We hosted an Open Internet Forum on Aug 18, which is a monthly event co-organized by our organization and communities concerned with Internet freedom."
+Paragraph: "We organized a two-day regional dialogue event bringing together practitioners and policymakers to share experiences on the topic."
 Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes an event organized by the reporting team — an activity, not a state change."}
 
-Paragraph: "The workshop gathers stakeholders from various sectors including civil society organizations, criminal investigation agencies, and online platform operators."
-Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes who attended an event — participant composition, not a durable change."}
+Paragraph: "Participants included representatives from government agencies, academic institutions, private sector companies, and community-based organizations."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This lists who attended an event — participant composition, not a durable change."}
 
 Paragraph: "To address this, we have consulted with numerous technical experts while continuously identifying new potential partners and resources."
 Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes the reporting organization's own outreach activity, not an external actor changing state."}
@@ -421,14 +421,6 @@ You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fen
             continue
         # Skip low-confidence signals (small models tend to inflate)
         if s.confidence < 0.4:
-            continue
-        # Activity-only paragraphs: if text has activity verbs but zero
-        # signal-keyword hits, it's likely a false positive from the LLM
-        activity_hits = _kw_match(s.text, ACTIVITY_VERBS)
-        signal_hits = (_kw_match(s.text, L1_KEYWORDS)
-                       + _kw_match(s.text, L2_KEYWORDS)
-                       + _kw_match(s.text, L3_KEYWORDS))
-        if activity_hits > 0 and signal_hits == 0:
             continue
         filtered.append(s)
     return filtered
