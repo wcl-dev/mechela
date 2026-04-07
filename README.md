@@ -263,7 +263,7 @@ Signals start as **candidates** after upload. ABC Review moves them to **confirm
 
 ## Notes on LLM Usage
 
-- **Local AI** uses [Ollama](https://ollama.com/) with `gemma3:4b` (chat) and `nomic-embed-text` (embeddings) — all inference runs on your machine
+- **Local AI** uses [Ollama](https://ollama.com/) with `gemma4:e4b` (chat) and `nomic-embed-text` (embeddings) — all inference runs on your machine
 - **OpenAI** uses `gpt-4o-mini` (detection) and `text-embedding-3-small` (matching) — data is sent to OpenAI's API
 - **Rule-based** mode requires no AI at all — suitable for sensitive environments where any external processing is not permitted
 - All settings are stored locally in `backend/user_settings.json`

@@ -11,7 +11,7 @@ VALID_PROVIDERS = {"openai", "ollama"}
 PROVIDER_DEFAULTS = {
     "ollama": {
         "base_url": "http://localhost:11434/v1",
-        "chat_model": "gemma3:4b",
+        "chat_model": "gemma4:e4b",
         "embed_model": "nomic-embed-text",
     },
     "openai": {

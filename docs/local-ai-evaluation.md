@@ -3,6 +3,7 @@
 Evaluated 2026-04-02. Three approaches were tested for privacy-preserving local LLM inference in Mechela.
 
 > **Note (2026-04-04):** The default chat model has been changed from `phi4-mini` to `gemma3:4b` for better structured output quality. Test results below reflect the original phi4-mini evaluation.
+> **Note (2026-04-07):** Default upgraded to `gemma4:e4b` — better reasoning at similar resource cost (~5 GB RAM at 4-bit quantization, 128K context).
 
 ## Decision: Ollama
 
