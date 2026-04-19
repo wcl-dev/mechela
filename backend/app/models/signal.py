@@ -9,6 +9,7 @@ class SignalLevel(str, enum.Enum):
     L2 = "L2"
     L3 = "L3"
     PENDING = "pending"
+    CONTEXT = "context"
 
 
 class SignalType(str, enum.Enum):
@@ -18,10 +19,9 @@ class SignalType(str, enum.Enum):
 
 
 class SignalStatus(str, enum.Enum):
-    CANDIDATE = "candidate"
+    PENDING = "pending"
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
-    CONTEXT = "context"
 
 
 class Signal(Base):
@@ -33,7 +33,7 @@ class Signal(Base):
     subject: Mapped[str | None] = mapped_column(String(255))
     level: Mapped[SignalLevel] = mapped_column(Enum(SignalLevel), default=SignalLevel.PENDING)
     signal_type: Mapped[SignalType | None] = mapped_column(Enum(SignalType))
-    status: Mapped[SignalStatus] = mapped_column(Enum(SignalStatus), default=SignalStatus.CANDIDATE)
+    status: Mapped[SignalStatus] = mapped_column(Enum(SignalStatus), default=SignalStatus.PENDING)
     confidence: Mapped[float | None] = mapped_column(Float)
     llm_mode: Mapped[bool] = mapped_column(default=False)
 

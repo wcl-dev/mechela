@@ -62,6 +62,7 @@ async def get_dashboard(project_id: int, db: AsyncSession = Depends(get_db)):
                         "signal_id": sig.id,
                         "text": sig.text,
                         "level": sig.level,
+                        "status": sig.status,
                         "signal_type": sig.signal_type,
                         "report_name": report.name,
                         "report_date": report.report_date,

@@ -1,10 +1,10 @@
 """
 Model quality comparison script.
-Compares rule-based vs Ollama (gemma4:e4b) signal detection on test DOCX files.
+Compares rule-based vs Ollama (gemma4:e2b) signal detection on test DOCX files.
 
 Usage:
   1. Make sure Ollama is running: ollama serve
-  2. Make sure gemma4:e4b is pulled: ollama pull gemma4:e4b
+  2. Make sure gemma4:e2b is pulled: ollama pull gemma4:e2b
   3. Run: python test_model_quality.py
 
   Without Ollama, only rule-based results will be shown.
@@ -22,7 +22,7 @@ from app.services.detector import detect_rule_based, detect_llm
 
 TEST_DIR = Path(__file__).parent.parent / "demo"
 OLLAMA_BASE_URL = "http://localhost:11434/v1"
-OLLAMA_MODEL = "gemma4:e4b"
+OLLAMA_MODEL = "gemma4:e2b"
 
 
 def print_header(title: str):

@@ -1,6 +1,6 @@
-export type SignalLevel = "L1" | "L2" | "L3" | "pending"
+export type SignalLevel = "L1" | "L2" | "L3" | "pending" | "context"
 export type SignalType = "capability" | "institutional" | "relational"
-export type SignalStatus = "candidate" | "confirmed" | "rejected" | "context"
+export type SignalStatus = "pending" | "confirmed" | "rejected"
 export type ThreadType = "capability" | "institutional" | "relational"
 
 export interface Objective {
@@ -55,6 +55,14 @@ export interface UploadResult {
   fallback_reason?: string
 }
 
+export interface Report {
+  id: number
+  name: string
+  report_date: string
+  file_path?: string
+  uploaded_at?: string
+}
+
 export interface DashboardSignal {
   signal_id: number
   text: string
@@ -64,6 +72,7 @@ export interface DashboardSignal {
   report_date: string
   paragraph_index: number
   confidence?: number
+  status?: SignalStatus
 }
 
 export interface DashboardThread {

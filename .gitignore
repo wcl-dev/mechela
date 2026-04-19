@@ -22,3 +22,9 @@ frontend/.env*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── Diagnostic / dev tools output ─────────────────────────
+backend/diagnose_output.txt
+
+# ── Claude Code internals ─────────────────────────────────
+.claude/
