@@ -1,5 +1,6 @@
 # ── User data (never commit) ─────────────────────────────
 backend/mechela.db
+backend/mechela.db.*
 backend/uploads/
 backend/user_settings.json
 

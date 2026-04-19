@@ -263,6 +263,21 @@ def _merge_custom_keywords() -> tuple[set, set, set]:
     return l1, l2, l3
 
 
+def compute_matched_user_keywords(text: str) -> dict[str, list[str]]:
+    """Return which user-defined keywords match this text, grouped by level.
+    Independent of LLM judgement — used as a second opinion during review."""
+    from app.core.settings_store import get_custom_keywords
+    custom = get_custom_keywords()
+    lower = text.lower()
+    result: dict[str, list[str]] = {"L1": [], "L2": [], "L3": []}
+    for level in ("L1", "L2", "L3"):
+        for kw in custom.get(level, []):
+            pattern = r'\b' + re.escape(kw.lower()) + r'\b'
+            if re.search(pattern, lower):
+                result[level].append(kw)
+    return result
+
+
 def detect_rule_based(anchors: list[ParsedAnchor]) -> list[DetectedSignal]:
     custom_l1, custom_l2, custom_l3 = _merge_custom_keywords()
     results = []

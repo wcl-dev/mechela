@@ -220,6 +220,31 @@ export default function ReviewPage() {
                   {!selected.llm_mode && " — 基礎模式偵測，建議仔細審閱"}
                 </div>
               )}
+              {(() => {
+                const kws = selected.matched_user_keywords
+                const matchedLevels = (["L1", "L2", "L3"] as const).filter(l => kws[l].length > 0)
+                if (matchedLevels.length === 0) return null
+                const disagreement = selected.llm_mode
+                  && matchedLevels.length > 0
+                  && !matchedLevels.includes(selected.level as "L1" | "L2" | "L3")
+                return (
+                  <div className={`text-xs mt-2 p-2 rounded ${disagreement ? "bg-amber-50 text-amber-800 border border-amber-200" : "bg-slate-50 text-slate-600 border border-slate-200"}`}>
+                    <div className="font-semibold mb-0.5">
+                      {disagreement ? "⚠ 自訂關鍵字提示不同等級" : "✓ 自訂關鍵字比對"}
+                    </div>
+                    {matchedLevels.map(l => (
+                      <div key={l}>
+                        {l}：{kws[l].map(k => `「${k}」`).join("、")}
+                      </div>
+                    ))}
+                    {disagreement && (
+                      <div className="mt-1 text-amber-700">
+                        AI 判斷為 {selected.level}，是否應調整？
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* B: 等級與狀態 */}

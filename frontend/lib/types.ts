@@ -27,6 +27,7 @@ export interface Signal {
   status: SignalStatus
   confidence?: number
   llm_mode: boolean
+  matched_user_keywords: { L1: string[]; L2: string[]; L3: string[] }
 }
 
 export interface Thread {

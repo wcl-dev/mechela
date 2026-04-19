@@ -12,6 +12,7 @@ class SignalOut(BaseModel):
     status: SignalStatus
     confidence: float | None
     llm_mode: bool
+    matched_user_keywords: dict[str, list[str]] = {"L1": [], "L2": [], "L3": []}
 
     model_config = {"from_attributes": True}
 

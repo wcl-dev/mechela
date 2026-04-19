@@ -7,6 +7,7 @@ from app.models.signal import Signal
 from app.models.thread import Thread, ThreadSignal
 from app.schemas.signal import SignalOut, SignalReview
 from app.services.matcher import match_rule_based, match_llm
+from app.services.detector import compute_matched_user_keywords
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 
@@ -43,7 +44,9 @@ async def review_signal(
 
     await db.commit()
     await db.refresh(signal)
-    return signal
+    out = SignalOut.model_validate(signal)
+    out.matched_user_keywords = compute_matched_user_keywords(signal.text)
+    return out
 
 
 @router.get("/{signal_id}/thread-suggestions")

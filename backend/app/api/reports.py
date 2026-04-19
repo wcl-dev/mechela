@@ -10,7 +10,7 @@ from app.models.thread import ThreadSignal
 from app.schemas.report import ReportOut
 from app.schemas.signal import SignalOut
 from app.services.parser import parse_docx
-from app.services.detector import detect_rule_based, detect_llm, calculate_output_ratio
+from app.services.detector import detect_rule_based, detect_llm, calculate_output_ratio, compute_matched_user_keywords
 from pathlib import Path
 import shutil
 
@@ -254,4 +254,10 @@ async def get_signals(report_id: int, db: AsyncSession = Depends(get_db)):
         .join(Anchor)
         .where(Anchor.report_id == report_id)
     )
-    return result.scalars().all()
+    signals = result.scalars().all()
+    out = []
+    for s in signals:
+        sig = SignalOut.model_validate(s)
+        sig.matched_user_keywords = compute_matched_user_keywords(s.text)
+        out.append(sig)
+    return out
