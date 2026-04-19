@@ -1,183 +1,125 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
-import { uploadReport, getProvider } from "@/lib/api"
-import type { UploadResult } from "@/lib/types"
-
-const PROGRESS_STEPS = [
-  "正在解析文件...",
-  "擷取段落與表格中...",
-  "偵測改變 Signal 中...",
-  "AI 分析中...",
-  "即將完成...",
-]
+import { Icon } from "@/components/Icon"
+import { useT } from "@/lib/i18n"
+import { useToast } from "@/components/Toast"
+import { uploadReport } from "@/lib/api"
 
 export default function UploadPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { lang, t } = useT()
+  const { showToast } = useToast()
+  const projectId = Number(id)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState("")
-  const [date, setDate] = useState("")
+  const [reportDate, setReportDate] = useState("")
   const [file, setFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<UploadResult | null>(null)
-  const [error, setError] = useState("")
-  const [elapsed, setElapsed] = useState(0)
-  const [progressMsg, setProgressMsg] = useState("")
-  const [isLlmMode, setIsLlmMode] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  useEffect(() => {
-    getProvider().then(s => setIsLlmMode(s.mode === "llm"))
-  }, [])
+  const today = new Date().toISOString().slice(0, 10)
 
-  useEffect(() => {
-    if (loading) {
-      setElapsed(0)
-      const start = Date.now()
-      timerRef.current = setInterval(() => {
-        const secs = Math.floor((Date.now() - start) / 1000)
-        setElapsed(secs)
-        if (secs < 3) setProgressMsg(PROGRESS_STEPS[0])
-        else if (secs < 6) setProgressMsg(PROGRESS_STEPS[1])
-        else if (secs < 15) setProgressMsg(PROGRESS_STEPS[2])
-        else if (secs < 60) setProgressMsg(PROGRESS_STEPS[3])
-        else setProgressMsg(PROGRESS_STEPS[4])
-      }, 1000)
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [loading])
+  const onFilePick = (f: File | null) => {
+    if (!f) return
+    setFile(f)
+    if (!name) setName(f.name.replace(/\.docx$/i, ""))
+    if (!reportDate) setReportDate(today)
+  }
 
-  async function handleUpload(e: React.FormEvent) {
-    e.preventDefault()
-    if (!file || !name || !date) return
-    setLoading(true); setError("")
-
+  const submit = async () => {
+    if (!file) return
+    if (!name.trim()) return showToast(lang === "en" ? "Name required" : "請填寫名稱")
+    if (!reportDate) return showToast(lang === "en" ? "Date required" : "請填寫日期")
+    setUploading(true)
     try {
       const fd = new FormData()
-      fd.append("project_id", id)
-      fd.append("name", name)
-      fd.append("report_date", date)
+      fd.append("project_id", String(projectId))
+      fd.append("name", name.trim())
+      fd.append("report_date", reportDate)
       fd.append("file", file)
-      const res = await uploadReport(fd)
-      setResult(res)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "上傳失敗")
-    } finally {
-      setLoading(false)
+      const result = await uploadReport(fd)
+      showToast(
+        lang === "en"
+          ? `Detected ${result.signals_detected} signals`
+          : `偵測到 ${result.signals_detected} 個訊號`
+      )
+      router.push(`/projects/${projectId}/review/${result.report_id}`)
+    } catch (err) {
+      showToast(String(err))
+      setUploading(false)
     }
   }
 
   return (
-    <div className="max-w-xl">
-      <div className="text-sm text-gray-400 mb-4">
-        <Link href="/" className="hover:text-gray-600">Project 列表</Link> /
-        <Link href={`/projects/${id}`} className="hover:text-gray-600 ml-1">Project</Link> /
-        <span className="ml-1">上傳報告</span>
+    <div className="page page-narrow">
+      <header className="ph">
+        <div>
+          <div className="ph-meta">{t.upload as string}</div>
+          <h1 className="ph-title">{t.upload as string}</h1>
+          <p className="ph-sub">
+            {lang === "en"
+              ? "Drop a .docx file and fill in its metadata. Signal detection runs immediately."
+              : "拖曳 .docx 檔案並填寫 metadata，系統會立即執行訊號偵測。"}
+          </p>
+        </div>
+      </header>
+
+      <div
+        className="drop"
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault()
+          onFilePick(e.dataTransfer.files?.[0] || null)
+        }}
+      >
+        <div className="ic">
+          <Icon name="upload" size={26} />
+        </div>
+        <div style={{ fontFamily: "var(--font-serif)", fontSize: 20 }}>
+          {file ? file.name : (t.dropTitle as string)}
+        </div>
+        <div style={{ color: "var(--ink-3)", fontSize: 12 }}>{t.dropSub as string}</div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".docx"
+          style={{ display: "none" }}
+          onChange={(e) => onFilePick(e.target.files?.[0] || null)}
+        />
       </div>
-      <h1 className="text-xl font-semibold text-gray-900 mb-6">上傳報告</h1>
 
-      {!result ? (
-        <form onSubmit={handleUpload} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
+      {file && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">報告名稱</label>
+            <div className="m-lbl" style={{ marginBottom: 4 }}>{t.rp_name as string}</div>
             <input
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-              placeholder="例如：2024 年第一季報"
+              className="kw-in"
               value={name}
-              onChange={e => setName(e.target.value)}
-              required
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t.rp_name as string}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">報告日期</label>
+            <div className="m-lbl" style={{ marginBottom: 4 }}>{t.rp_date as string}</div>
             <input
+              className="kw-in"
               type="date"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              required
+              value={reportDate}
+              onChange={(e) => setReportDate(e.target.value)}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">檔案（僅限 .docx）</label>
-            <input
-              type="file"
-              accept=".docx"
-              onChange={e => setFile(e.target.files?.[0] ?? null)}
-              className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-              required
-            />
-          </div>
-          {error && <div className="text-sm text-red-500">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-600 text-white py-2 rounded-lg text-sm hover:bg-teal-700 disabled:opacity-50"
-          >
-            {loading ? "處理中..." : "上傳並分析"}
-          </button>
-          {loading && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
-                <span className="text-sm text-gray-700">{progressMsg}</span>
-              </div>
-              <div className="text-xs text-gray-400">
-                {elapsed > 0 && `已經過 ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`}
-                {isLlmMode && elapsed < 5 && " — AI 分析可能需要數分鐘"}
-              </div>
-            </div>
-          )}
-        </form>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="text-green-600 text-lg">✓</span>
-            <span className="font-medium">報告處理完成</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="text-gray-500">段落數</div>
-              <div className="font-semibold">{result.total_paragraphs}</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="text-gray-500">偵測到的 Signal</div>
-              <div className="font-semibold">{result.signals_detected}</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg px-3 py-2">
-              <div className="text-gray-500">分析模式</div>
-              <div className="font-semibold capitalize">{result.mode === "llm" ? "AI 模式" : "基礎模式"}</div>
-            </div>
-          </div>
-
-          {result.output_warning && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-              {result.output_warning_message}
-            </div>
-          )}
-
-          {result.fallback_reason && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
-              {result.fallback_reason}
-            </div>
-          )}
-
-          <div className="flex gap-2 pt-2">
-            <button
-              onClick={() => router.push(`/projects/${id}/review/${result.report_id}`)}
-              className="flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm hover:bg-teal-700"
-            >
-              開始審閱 Signal →
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className="btn primary" onClick={submit} disabled={uploading}>
+              <Icon name="upload" size={12} />
+              {uploading ? (lang === "en" ? "Uploading…" : "上傳中…") : (t.upload as string)}
             </button>
             <button
-              onClick={() => setResult(null)}
-              className="text-sm text-gray-400 px-4 py-2 hover:text-gray-700"
+              className="btn subtle"
+              onClick={() => router.push(`/projects/${projectId}`)}
             >
-              再上傳一份
+              {t.cancel as string}
             </button>
           </div>
         </div>

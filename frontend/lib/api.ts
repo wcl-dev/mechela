@@ -52,15 +52,34 @@ export const getReports = (projectId: number) =>
 export const uploadReport = (formData: FormData) =>
   fetch(`${BASE}/reports/upload`, { method: "POST", body: formData }).then(r => r.json()) as Promise<UploadResult>
 export const getSignals = (reportId: number) => req<Signal[]>(`/reports/${reportId}/signals`)
+export const getAnchors = (reportId: number) =>
+  req<{
+    report_id: number
+    report_name: string
+    report_date: string
+    anchors: Array<{
+      id: number
+      paragraph_index: number
+      section: string | null
+      text: string
+      context_text: string | null
+      signal_id: number | null
+    }>
+  }>(`/reports/${reportId}/anchors`)
 export const redetectReport = (reportId: number) =>
   req<UploadResult & { previous_confirmed_replaced: number }>(`/reports/${reportId}/redetect`, { method: "POST" })
 export const deleteReport = (reportId: number) =>
   req<{ ok: boolean }>(`/reports/${reportId}`, { method: "DELETE" })
 
 // Signals
+export const createSignal = (anchorId: number, text?: string) =>
+  req<Signal>("/signals", {
+    method: "POST",
+    body: JSON.stringify({ anchor_id: anchorId, text }),
+  })
 export const reviewSignal = (
   signalId: number,
-  data: { level?: string; signal_type?: string; status?: string; thread_id?: number }
+  data: { text?: string; level?: string; signal_type?: string; status?: string; thread_id?: number }
 ) =>
   req<Signal>(`/signals/${signalId}`, {
     method: "PATCH",

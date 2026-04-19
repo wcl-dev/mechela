@@ -295,7 +295,9 @@ def detect_rule_based(anchors: list[ParsedAnchor]) -> list[DetectedSignal]:
         if level is None:
             continue
 
-        status = SignalStatus.CONTEXT if is_context_section else SignalStatus.CANDIDATE
+        # If from a Background/Context section, mark level as CONTEXT
+        if is_context_section:
+            level = SignalLevel.CONTEXT
 
         results.append(DetectedSignal(
             anchor_index=anchor.paragraph_index,
@@ -303,7 +305,7 @@ def detect_rule_based(anchors: list[ParsedAnchor]) -> list[DetectedSignal]:
             subject=None,
             level=level,
             signal_type=None,
-            status=status,
+            status=SignalStatus.PENDING,
             confidence=confidence,
             llm_mode=False,
         ))
@@ -402,7 +404,9 @@ You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fen
 
             level_map = {"L1": SignalLevel.L1, "L2": SignalLevel.L2, "L3": SignalLevel.L3}
             level = level_map.get(data.get("level"), SignalLevel.PENDING)
-            status = SignalStatus.CONTEXT if data.get("is_context_signal") else SignalStatus.CANDIDATE
+            if data.get("is_context_signal"):
+                level = SignalLevel.CONTEXT
+            status = SignalStatus.PENDING
 
             type_map = {
                 "capability": SignalType.CAPABILITY,

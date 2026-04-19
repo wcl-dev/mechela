@@ -1,0 +1,158 @@
+"use client"
+import React, { createContext, useContext, useEffect, useState } from "react"
+
+export type Lang = "en" | "zh"
+
+type StringDict = Record<string, string | ((...args: any[]) => string)>
+
+export const I18N: Record<Lang, StringDict> = {
+  en: {
+    projects: "Projects", settings: "Settings", localFirst: "Local-first · No upload",
+    upload: "Upload report", export: "Export MD", review: "Review", dashboard: "Dashboard",
+    reports: "Reports", addSummary: "Add progression summary",
+    objectives: "Objectives", threads: "Change threads", confirmedSignals: "Confirmed signals",
+    reportCoverage: "Maturity", reviewed: "reports reviewed", pendingReview: "pending",
+    progressionOverview: "Progression overview", byObjective: "Objectives & threads",
+    aTitle: "Signal text", aDesc: "Review & edit if needed.",
+    bTitle: "Classify", bDesc: "Confirm level, or mark as context / rejected.",
+    cTitle: "Assign to thread", cDesc: "Group with related evidence.",
+    lvlL1: "L1", lvlL2: "L2", lvlL3: "L3", lvlPending: "Pending",
+    l1Desc: "Institutionalised", l2Desc: "Committed", l3Desc: "Awareness", pendingDesc: "Ambiguous",
+    confirm: "Confirm", reject: "Reject", context: "Context", save: "Save", edit: "Edit", cancel: "Cancel",
+    reviewProgress: "Signal", suggested: "Suggested threads", createThread: "Create new thread…",
+    sourceDoc: "Source document",
+    home_title: "Projects", home_sub: "Your reports, read carefully so you don't have to — at least not twice. Pick one to continue.",
+    col_threads: "threads", col_signals: "signals", col_reports: "reports", col_updated: "updated",
+    rp_name: "Report", rp_date: "Date", rp_signals: "Signals", rp_status: "Status",
+    reanalyse: "Re-analyse",
+    newProject: "New project", projectName: "Project name", description: "Description (optional)", create: "Create",
+    delete: "Delete", editTitle: "Click to rename",
+    confirmDeleteProject: (n: string) => `Delete "${n}" and all its data? This cannot be undone.`,
+    confirmDeleteObj: (n: string, c: number) => c > 0 ? `Delete objective "${n}"? Its ${c} thread(s) will be deleted too.` : `Delete objective "${n}"?`,
+    confirmDeleteThread: (n: string) => `Delete thread "${n}"? Its signals will move to another thread under the same objective.`,
+    confirmDeleteReport: (n: string) => `Delete report "${n}"? All signals from this report will also be removed.`,
+    confirmDeleteSignal: "Delete this signal? This cannot be undone.",
+    rereview: "Re-review", deletedSignalT: "Signal deleted",
+    viewTimeline: "Timeline", viewList: "List",
+    detectionMode: "Detection mode",
+    modeBasicT: "Basic", modeBasicD: "Keyword matching, no AI.",
+    modeLocalT: "Local AI", modeLocalD: "Ollama on-device.",
+    modeOpenAIT: "OpenAI", modeOpenAID: "Highest accuracy. Data sent to OpenAI.",
+    priv_local: "local", priv_cloud: "cloud",
+    customKeywords: "Custom signal keywords",
+    kwDesc: "Merged with built-in detection vocabulary.",
+    orgNames: "Organisation names",
+    orgDesc: "Helps distinguish internal activity from external signals.",
+    kwIgnoreLbl: "Ignore", kwIgnoreDsc: "Internal orgs, filler phrases — never flagged as signals.",
+    kwIgnorePh: 'e.g. "Open Rights Network"',
+    kwL1Ph: 'e.g. "formal adoption"', kwL2Ph: 'e.g. "pilot agreed"', kwL3Ph: 'e.g. "attended workshop"',
+    done: "Done",
+    newSignalsPending: (n: number) => `${n} new signals detected in the latest report`,
+    reviewToConfirm: "Run ABC Review to confirm, reject, or assign to threads.",
+    savedT: "Saved", confirmedT: "Confirmed as", rejectedT: "Rejected", contextT: "Marked as context", assignedT: "Assigned to",
+    copiedT: "Markdown copied to clipboard", reanalysedT: "Re-analysed with current detection mode",
+    exportTitle: "Export — Markdown", copyMd: "Copy", closeMd: "Close",
+    dropTitle: "Drop a .docx file here", dropSub: "or click to browse — file stays on your machine", chooseFile: "Choose file…",
+    kwMatchAgree: "Custom keywords match AI judgement",
+    kwMatchDisagree: "Custom keywords suggest a different level",
+    kwMatchAsk: (lvl: string) => `AI says ${lvl} — adjust?`,
+    apiDocs: "API docs", openapiLabel: "OpenAPI",
+    noSignalsAddFromFull: "No signals in this report. Switch to Full report on the left to mark paragraphs.",
+    noThreadsYet: "No threads yet. After you review a report, confirmed signals will form threads here.",
+    clickToReview: "Click to review this signal",
+    clickToMark: "Click to mark this paragraph as a signal",
+    markAsSignal: "Mark as signal",
+    signalAdded: "Signal added — review on the right",
+    showingContext: "Showing the 3-paragraph context window stored with this anchor.",
+    addThread: "Add thread", newThreadName: "New thread statement…",
+    addObjective: "Add objective", newObjectiveName: "New objective title…",
+    unmarked: "unmarked",
+  },
+  zh: {
+    projects: "專案", settings: "設定", localFirst: "本地優先 · 不上傳",
+    upload: "上傳報告", export: "匯出 MD", review: "審閱", dashboard: "儀表板",
+    reports: "報告", addSummary: "新增進程摘要",
+    objectives: "目標", threads: "變革主線", confirmedSignals: "已確認訊號",
+    reportCoverage: "成熟度", reviewed: "份報告已審閱", pendingReview: "待審",
+    progressionOverview: "進程總覽", byObjective: "目標與主線",
+    aTitle: "訊號文字", aDesc: "檢視並視需要編輯。",
+    bTitle: "分類", bDesc: "確認等級,或標為背景 / 拒絕。",
+    cTitle: "指派至主線", cDesc: "與相關證據歸類。",
+    lvlL1: "L1", lvlL2: "L2", lvlL3: "L3", lvlPending: "待判定",
+    l1Desc: "已制度化", l2Desc: "已承諾", l3Desc: "已關注", pendingDesc: "含糊",
+    confirm: "確認", reject: "拒絕", context: "背景", save: "儲存", edit: "編輯", cancel: "取消",
+    reviewProgress: "訊號", suggested: "建議主線", createThread: "建立新主線…",
+    sourceDoc: "原始文件",
+    home_title: "專案", home_sub: "報告我們幫你細讀過了,這樣你就不用再讀第二遍。選一個專案繼續。",
+    col_threads: "主線", col_signals: "訊號", col_reports: "報告", col_updated: "更新",
+    rp_name: "報告", rp_date: "日期", rp_signals: "訊號", rp_status: "狀態",
+    reanalyse: "重新分析",
+    newProject: "新增專案", projectName: "專案名稱", description: "描述（選填）", create: "建立",
+    delete: "刪除", editTitle: "點擊編輯名稱",
+    confirmDeleteProject: (n: string) => `確定要刪除「${n}」及所有相關資料嗎？此操作無法復原。`,
+    confirmDeleteObj: (n: string, c: number) => c > 0 ? `確定要刪除目標「${n}」嗎？底下的 ${c} 個主線也會一併刪除。` : `確定要刪除目標「${n}」嗎？`,
+    confirmDeleteThread: (n: string) => `確定要刪除主線「${n}」嗎？其中的訊號會轉移到同目標下其他主線。`,
+    confirmDeleteReport: (n: string) => `確定要刪除報告「${n}」嗎？該報告的所有訊號也會一併刪除。`,
+    confirmDeleteSignal: "確定要刪除此訊號嗎？無法復原。",
+    rereview: "重新審閱", deletedSignalT: "訊號已刪除",
+    viewTimeline: "時間軸", viewList: "列表",
+    detectionMode: "偵測模式",
+    modeBasicT: "基本", modeBasicD: "關鍵字比對，不使用 AI。",
+    modeLocalT: "本地 AI", modeLocalD: "Ollama 裝置端推論。",
+    modeOpenAIT: "OpenAI", modeOpenAID: "準確度最高。資料傳送至 OpenAI。",
+    priv_local: "本地", priv_cloud: "雲端",
+    customKeywords: "自訂訊號關鍵字",
+    kwDesc: "將與內建偵測字彙合併使用。",
+    orgNames: "組織名稱",
+    orgDesc: "有助於區分內部活動與外部訊號。",
+    kwIgnoreLbl: "忽略", kwIgnoreDsc: "內部組織名、填充語句 — 永不標記為訊號。",
+    kwIgnorePh: "例如「開放權利網絡」",
+    kwL1Ph: "例如「正式採納」", kwL2Ph: "例如「同意試行」", kwL3Ph: "例如「參與工作坊」",
+    done: "完成",
+    newSignalsPending: (n: number) => `最新報告偵測到 ${n} 個新訊號`,
+    reviewToConfirm: "執行 ABC 審閱以確認、拒絕或指派至主線。",
+    savedT: "已儲存", confirmedT: "已確認為", rejectedT: "已拒絕", contextT: "已標為背景", assignedT: "已指派至",
+    copiedT: "Markdown 已複製至剪貼簿", reanalysedT: "已以當前模式重新分析",
+    exportTitle: "匯出 — Markdown", copyMd: "複製", closeMd: "關閉",
+    dropTitle: "將 .docx 檔案拖曳至此", dropSub: "或點擊瀏覽 — 檔案保留於您的裝置", chooseFile: "選擇檔案…",
+    kwMatchAgree: "自訂關鍵字與 AI 判斷一致",
+    kwMatchDisagree: "自訂關鍵字提示不同等級",
+    kwMatchAsk: (lvl: string) => `AI 判斷為 ${lvl} — 是否調整？`,
+    apiDocs: "API 文件", openapiLabel: "OpenAPI",
+    noSignalsAddFromFull: "此報告尚無訊號。切換到左側「完整報告」即可手動標記段落。",
+    noThreadsYet: "尚未建立主線。上傳報告並完成審閱後，這裡會出現改變線索。",
+    clickToReview: "點擊進入此訊號審閱",
+    clickToMark: "點擊將此段落標為訊號",
+    markAsSignal: "標為訊號",
+    signalAdded: "已加入訊號 — 請於右側審閱",
+    showingContext: "顯示此 anchor 儲存的三段前後文視窗。",
+    addThread: "新增主線", newThreadName: "新主線敘述…",
+    addObjective: "新增目標", newObjectiveName: "新目標標題…",
+    unmarked: "未標",
+  },
+}
+
+type Ctx = {
+  lang: Lang
+  t: StringDict
+  setLang: (l: Lang) => void
+}
+
+const I18nCtx = createContext<Ctx>({ lang: "zh", t: I18N.zh, setLang: () => {} })
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("zh")
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("mechela_lang") as Lang | null
+      if (stored === "en" || stored === "zh") setLangState(stored)
+    } catch {}
+  }, [])
+  const setLang = (l: Lang) => {
+    setLangState(l)
+    try { localStorage.setItem("mechela_lang", l) } catch {}
+  }
+  return <I18nCtx.Provider value={{ lang, t: I18N[lang], setLang }}>{children}</I18nCtx.Provider>
+}
+
+export const useT = () => useContext(I18nCtx)

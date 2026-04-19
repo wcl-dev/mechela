@@ -17,18 +17,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       if (timerRef.current) clearTimeout(timerRef.current)
       setMessage(msg)
       setVisible(true)
-      timerRef.current = setTimeout(() => setVisible(false), 2500)
+      timerRef.current = setTimeout(() => setVisible(false), 1800)
     }
   }, [])
 
   return (
     <>
       {children}
-      {visible && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-5 py-2.5 rounded-lg shadow-lg z-50 animate-fade-in">
-          {message}
-        </div>
-      )}
+      {visible && <div className="toast">{message}</div>}
     </>
   )
 }

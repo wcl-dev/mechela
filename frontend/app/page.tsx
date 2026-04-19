@@ -1,107 +1,174 @@
 "use client"
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import { getProjects, createProject, deleteProject } from "@/lib/api"
+import { useRouter } from "next/navigation"
+import { Icon } from "@/components/Icon"
 import { useToast } from "@/components/Toast"
+import { useT } from "@/lib/i18n"
+import { getProjects, createProject, deleteProject, getReports, getDashboard } from "@/lib/api"
 import type { Project } from "@/lib/types"
 
+type ProjectStats = {
+  threads: number
+  confirmedSignals: number
+  reports: number
+  updatedAt?: string
+}
+
 export default function HomePage() {
+  const router = useRouter()
+  const { lang, t } = useT()
+  const { showToast } = useToast()
   const [projects, setProjects] = useState<Project[]>([])
+  const [stats, setStats] = useState<Record<number, ProjectStats>>({})
+  const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState("")
   const [desc, setDesc] = useState("")
-  const [creating, setCreating] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const { showToast } = useToast()
 
-  useEffect(() => {
-    getProjects().then(setProjects)
-  }, [])
-
-  async function handleDelete(id: number, name: string) {
-    if (!confirm(`確定要刪除「${name}」及所有相關資料嗎？此操作無法復原。`)) return
-    await deleteProject(id)
-    setProjects(prev => prev.filter(p => p.id !== id))
-    showToast(`已刪除「${name}」`)
+  const refresh = () => {
+    getProjects().then((list) => {
+      setProjects(list)
+      list.forEach(async (p) => {
+        try {
+          const [reports, dash] = await Promise.all([getReports(p.id), getDashboard(p.id)])
+          const threadCount = dash.objectives.reduce((a, o) => a + o.threads.length, 0)
+          setStats((s) => ({
+            ...s,
+            [p.id]: {
+              threads: threadCount,
+              confirmedSignals: dash.total_confirmed_signals,
+              reports: reports.length,
+              updatedAt: reports[reports.length - 1]?.report_date,
+            },
+          }))
+        } catch {}
+      })
+    })
   }
 
-  async function handleCreate(e: React.FormEvent) {
+  useEffect(() => {
+    refresh()
+  }, [])
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    setCreating(true)
-    const p = await createProject(name.trim(), desc.trim() || undefined)
-    setProjects(prev => [...prev, p])
-    setName(""); setDesc(""); setShowForm(false); setCreating(false)
-    showToast(`已建立「${p.name}」`)
+    try {
+      await createProject(name.trim(), desc.trim() || undefined)
+      showToast(lang === "en" ? `Created "${name.trim()}"` : `已建立「${name.trim()}」`)
+      setName("")
+      setDesc("")
+      setShowForm(false)
+      refresh()
+      window.dispatchEvent(new Event("mechela-refresh"))
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  const handleDelete = async (e: React.MouseEvent, p: Project) => {
+    e.stopPropagation()
+    if (!confirm((t.confirmDeleteProject as (n: string) => string)(p.name))) return
+    try {
+      await deleteProject(p.id)
+      showToast(lang === "en" ? `Deleted "${p.name}"` : `已刪除「${p.name}」`)
+      refresh()
+      window.dispatchEvent(new Event("mechela-refresh"))
+    } catch (err) {
+      showToast(String(err))
+    }
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Project 列表</h1>
-        <button
-          onClick={() => setShowForm(v => !v)}
-          className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
-        >
-          + 新增 Project
+    <div className="page page-narrow">
+      <header className="ph">
+        <div>
+          <div className="ph-meta">mechela · narrative evidence index</div>
+          <h1 className="ph-title">{t.home_title as string}</h1>
+          <p className="ph-sub">{t.home_sub as string}</p>
+        </div>
+        <button className="btn primary" onClick={() => setShowForm((v) => !v)}>
+          <Icon name="plus" size={12} />
+          {t.newProject as string}
         </button>
-      </div>
+      </header>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-5 mb-6 space-y-3">
+        <form onSubmit={handleCreate} className="new-proj">
           <input
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-            placeholder="Project 名稱"
+            autoFocus
+            placeholder={t.projectName as string}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             required
           />
           <input
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-            placeholder="描述（選填）"
+            placeholder={t.description as string}
             value={desc}
-            onChange={e => setDesc(e.target.value)}
+            onChange={(e) => setDesc(e.target.value)}
           />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={creating}
-              className="bg-teal-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50"
-            >
-              {creating ? "建立中..." : "建立"}
+          <div style={{ display: "flex", gap: 6 }}>
+            <button type="submit" className="btn primary sm">
+              {t.create as string}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="text-sm text-gray-500 px-4 py-2">
-              取消
+            <button
+              type="button"
+              className="btn subtle sm"
+              onClick={() => {
+                setShowForm(false)
+                setName("")
+                setDesc("")
+              }}
+            >
+              {t.cancel as string}
             </button>
           </div>
         </form>
       )}
 
       {projects.length === 0 ? (
-        <div className="text-center py-16 text-gray-400 text-sm">
-          尚未建立任何 Project。點選上方「+ 新增 Project」開始使用。
+        <div className="empty">
+          {lang === "en"
+            ? 'No projects yet. Click "New project" above to begin.'
+            : "尚未建立任何專案。點選上方「新增專案」開始。"}
         </div>
       ) : (
-        <div className="grid gap-3">
-          {projects.map(p => (
-            <div
-              key={p.id}
-              className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between"
-            >
-              <Link href={`/projects/${p.id}`} className="flex-1 min-w-0 hover:opacity-70 transition-opacity">
-                <div className="font-medium text-gray-900">{p.name}</div>
-                {p.description && <div className="text-sm text-gray-500 mt-0.5">{p.description}</div>}
-              </Link>
-              <div className="flex items-center gap-4 shrink-0 ml-4">
-                <span className="text-sm text-gray-400">{p.objectives.length} 個 Objective</span>
+        <div className="proj-list">
+          {projects.map((p) => {
+            const s = stats[p.id]
+            return (
+              <div
+                key={p.id}
+                className="proj"
+                onClick={() => router.push(`/projects/${p.id}`)}
+              >
+                <div>
+                  <h3>{p.name}</h3>
+                  <p>{p.description || ""}</p>
+                </div>
+                <div className="num">
+                  {s?.threads ?? 0}
+                  <small>{t.col_threads as string}</small>
+                </div>
+                <div className="num">
+                  {s?.confirmedSignals ?? 0}
+                  <small>{t.col_signals as string}</small>
+                </div>
+                <div className="num">
+                  {s?.reports ?? 0}
+                  <small>{t.col_reports as string}</small>
+                </div>
+                <div className="dt">{s?.updatedAt ?? "—"}</div>
                 <button
-                  onClick={() => handleDelete(p.id, p.name)}
-                  className="text-xs text-red-400 border border-red-200 px-2 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
+                  className="del-sm"
+                  title={t.delete as string}
+                  onClick={(e) => handleDelete(e, p)}
+                  aria-label={t.delete as string}
                 >
-                  刪除
+                  ×
                 </button>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

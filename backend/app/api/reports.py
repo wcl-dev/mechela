@@ -261,3 +261,41 @@ async def get_signals(report_id: int, db: AsyncSession = Depends(get_db)):
         sig.matched_user_keywords = compute_matched_user_keywords(s.text)
         out.append(sig)
     return out
+
+
+@router.get("/{report_id}/anchors")
+async def get_anchors(report_id: int, db: AsyncSession = Depends(get_db)):
+    """Return all anchors (parsed paragraphs) for a report, with signal assignments."""
+    report = await db.get(Report, report_id)
+    if not report:
+        raise HTTPException(404, "Report not found")
+
+    anchor_result = await db.execute(
+        select(Anchor)
+        .where(Anchor.report_id == report_id)
+        .order_by(Anchor.paragraph_index)
+    )
+    anchors = anchor_result.scalars().all()
+
+    signal_result = await db.execute(
+        select(Signal).join(Anchor).where(Anchor.report_id == report_id)
+    )
+    signals_by_anchor = {s.anchor_id: s.id for s in signal_result.scalars().all()}
+
+    return {
+        "report_id": report_id,
+        "report_name": report.name,
+        "report_date": report.report_date,
+        "anchors": [
+            {
+                "id": a.id,
+                "paragraph_index": a.paragraph_index,
+                "section": a.section,
+                "text": a.text,
+                "context_text": a.context_text,
+                "signal_id": signals_by_anchor.get(a.id),
+            }
+            for a in anchors
+        ],
+    }
+

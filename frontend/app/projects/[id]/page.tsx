@@ -1,379 +1,878 @@
 "use client"
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useEffect, useState, useMemo, useCallback } from "react"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { getDashboard, createObjective, exportMarkdown, getReports, redetectReport, deleteReport, updateThread, deleteThread, updateProject, updateObjective, deleteObjective } from "@/lib/api"
+import { Icon } from "@/components/Icon"
 import { useToast } from "@/components/Toast"
-import { LevelBadge } from "@/components/LevelBadge"
-import type { Dashboard } from "@/lib/types"
+import { useT } from "@/lib/i18n"
+import { ExportModal } from "@/components/ExportModal"
+import {
+  getDashboard, getReports, redetectReport, deleteReport, updateThread, deleteThread,
+  createThread, updateProject, updateObjective, deleteObjective, createObjective,
+} from "@/lib/api"
+import type { Dashboard, DashboardSignal, DashboardThread, Report } from "@/lib/types"
+
+type ViewMode = "timeline" | "list"
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const { lang, t } = useT()
+  const { showToast } = useToast()
   const projectId = Number(id)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
-  const [reports, setReports] = useState<{ id: number; name: string; report_date: string }[]>([])
-  const [objTitle, setObjTitle] = useState("")
-  const [showObjForm, setShowObjForm] = useState(false)
-  const [exported, setExported] = useState("")
-  const [redetecting, setRedetecting] = useState<number | null>(null)
-  const [redetectResult, setRedetectResult] = useState<string | null>(null)
-  const { showToast } = useToast()
-
-  // Inline edit states
-  const [editingSummary, setEditingSummary] = useState<number | null>(null)
-  const [summaryText, setSummaryText] = useState("")
-  const [editingProjectName, setEditingProjectName] = useState(false)
-  const [editProjectName, setEditProjectName] = useState("")
-  const [editingObjId, setEditingObjId] = useState<number | null>(null)
-  const [editObjTitle, setEditObjTitle] = useState("")
-  const [editingThreadId, setEditingThreadId] = useState<number | null>(null)
-  const [editThreadStmt, setEditThreadStmt] = useState("")
+  const [reports, setReports] = useState<Report[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>("timeline")
+  const [exportOpen, setExportOpen] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState("")
 
   useEffect(() => {
-    getDashboard(projectId).then(setDashboard)
-    getReports(projectId).then(setReports)
+    try {
+      const v = localStorage.getItem("mechela_view") as ViewMode | null
+      if (v === "timeline" || v === "list") setViewMode(v)
+    } catch {}
+  }, [])
+  useEffect(() => {
+    try { localStorage.setItem("mechela_view", viewMode) } catch {}
+  }, [viewMode])
+
+  const refresh = useCallback(() => {
+    getDashboard(projectId).then(setDashboard).catch(() => {})
+    getReports(projectId).then(setReports).catch(() => {})
   }, [projectId])
 
-  const reload = () => getDashboard(projectId).then(setDashboard)
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
-  async function handleAddObjective(e: React.FormEvent) {
-    e.preventDefault()
-    if (!objTitle.trim()) return
-    await createObjective(projectId, objTitle.trim())
-    setObjTitle(""); setShowObjForm(false)
-    reload()
-    showToast("已新增 Objective")
-  }
-
-  async function handleExport() {
-    const result = await exportMarkdown(projectId)
-    setExported(result.markdown)
-  }
-
-  async function saveProjectName() {
-    if (!editProjectName.trim() || editProjectName === dashboard?.project_name) {
-      setEditingProjectName(false); return
+  const saveName = async () => {
+    const v = nameDraft.trim()
+    if (!v || !dashboard || v === dashboard.project_name) {
+      setEditingName(false)
+      return
     }
-    await updateProject(projectId, { name: editProjectName.trim() })
-    setEditingProjectName(false)
-    reload()
-    showToast("Project 名稱已更新")
-  }
-
-  async function saveObjTitle(objId: number, original: string) {
-    if (!editObjTitle.trim() || editObjTitle === original) {
-      setEditingObjId(null); return
+    try {
+      await updateProject(projectId, { name: v })
+      showToast(lang === "en" ? "Project name updated" : "專案名稱已更新")
+      setEditingName(false)
+      refresh()
+      window.dispatchEvent(new Event("mechela-refresh"))
+    } catch (err) {
+      showToast(String(err))
     }
-    await updateObjective(projectId, objId, { title: editObjTitle.trim() })
-    setEditingObjId(null)
-    reload()
-    showToast("Objective 名稱已更新")
   }
 
-  async function saveThreadStmt(threadId: number, original: string) {
-    if (!editThreadStmt.trim() || editThreadStmt === original) {
-      setEditingThreadId(null); return
+  const allSignals = useMemo<DashboardSignal[]>(() => {
+    if (!dashboard) return []
+    const out: DashboardSignal[] = []
+    dashboard.objectives.forEach((o) =>
+      o.threads.forEach((th) => th.signals.forEach((s) => out.push(s)))
+    )
+    return out
+  }, [dashboard])
+
+  const pendingReport = useMemo(() => {
+    // naive: any report where signals are still pending
+    if (!dashboard) return null
+    const pendingSignalsByReport: Record<string, number> = {}
+    dashboard.objectives.forEach((o) =>
+      o.threads.forEach((th) =>
+        th.signals.forEach((s) => {
+          if (s.status === "pending") {
+            pendingSignalsByReport[s.report_name] = (pendingSignalsByReport[s.report_name] || 0) + 1
+          }
+        })
+      )
+    )
+    // find a report that has pending signals
+    for (const r of reports) {
+      if (pendingSignalsByReport[r.name] > 0) {
+        return { ...r, pending: pendingSignalsByReport[r.name] }
+      }
     }
-    await updateThread(threadId, { statement: editThreadStmt.trim() })
-    setEditingThreadId(null)
-    reload()
-    showToast("Thread 名稱已更新")
+    return null
+  }, [dashboard, reports])
+
+  const { axis, minT, maxT } = useMemo(() => {
+    if (allSignals.length === 0)
+      return { axis: [] as string[], minT: 0, maxT: 0 }
+    const dates = allSignals.map((s) => new Date(s.report_date).getTime())
+    const minT = Math.min(...dates)
+    const maxT = Math.max(...dates)
+    const axis: string[] = []
+    const s = new Date(minT)
+    const e = new Date(maxT)
+    let y = s.getFullYear()
+    let q = Math.floor(s.getMonth() / 3) + 1
+    const ey = e.getFullYear()
+    const eq = Math.floor(e.getMonth() / 3) + 1
+    while (y < ey || (y === ey && q <= eq)) {
+      axis.push(`${y} Q${q}`)
+      q++
+      if (q > 4) {
+        q = 1
+        y++
+      }
+    }
+    if (axis.length === 0) axis.push(`${y} Q${q}`)
+    return { axis, minT, maxT }
+  }, [allSignals])
+
+  const pctFor = (d: string) => {
+    if (maxT === minT) return 50
+    return ((new Date(d).getTime() - minT) / (maxT - minT)) * 100
   }
 
-  if (!dashboard) return <div className="text-sm text-gray-400 py-8">載入中...</div>
+  const confirmedSignals = allSignals.filter((s) => s.status === "confirmed")
+  const l1Count = confirmedSignals.filter((s) => s.level === "L1").length
+  const maturity = confirmedSignals.length ? l1Count / confirmedSignals.length : 0
 
-  const totalSignals = dashboard.total_confirmed_signals
+  const threadCount = dashboard
+    ? dashboard.objectives.reduce((a, o) => a + o.threads.length, 0)
+    : 0
+
+  if (!dashboard) {
+    return <div className="page"><div className="empty">…</div></div>
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="text-sm text-gray-500 mb-1">
-            <Link href="/" className="text-gray-500 hover:text-gray-800">Project 列表</Link> /
-          </div>
-          {/* Project 名稱 inline edit */}
-          {editingProjectName ? (
+    <div className="page">
+      <header className="ph">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="ph-meta">{dashboard.project_name}</div>
+          {editingName ? (
             <input
-              className="text-xl font-semibold text-gray-900 border-b-2 border-teal-400 outline-none bg-transparent w-80"
-              value={editProjectName}
-              onChange={e => setEditProjectName(e.target.value)}
-              onBlur={saveProjectName}
-              onKeyDown={e => { if (e.key === "Enter") saveProjectName(); if (e.key === "Escape") setEditingProjectName(false) }}
+              className="editable-input ph-title"
+              style={{ display: "block", margin: "0 0 4px" }}
+              value={nameDraft}
               autoFocus
+              onChange={(e) => setNameDraft(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveName()
+                if (e.key === "Escape") setEditingName(false)
+              }}
             />
           ) : (
             <h1
-              className="text-xl font-semibold text-gray-900 group cursor-pointer inline-flex items-center gap-1.5"
-              onClick={() => { setEditingProjectName(true); setEditProjectName(dashboard.project_name) }}
+              className="ph-title editable"
+              onClick={() => {
+                setEditingName(true)
+                setNameDraft(dashboard.project_name)
+              }}
             >
               {dashboard.project_name}
-              <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-sm" title="點擊編輯名稱">&#9998;</span>
+              <span className="edit-pencil" title={t.editTitle as string}>✎</span>
             </h1>
           )}
+          <div className="ph-sub">
+            <Icon name="clock" size={11} /> {reports.length} {t.col_reports as string}
+            {" · "}
+            {dashboard.total_confirmed_signals} {(t.confirmedSignals as string).toLowerCase()}
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/projects/${id}/upload`}
-            className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700"
-          >
-            + 上傳報告
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href={`/projects/${projectId}/upload`} className="btn ghost sm">
+            <Icon name="upload" size={12} />
+            {t.upload as string}
           </Link>
-          <button
-            onClick={handleExport}
-            className="text-sm border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100"
-          >
-            匯出報告
+          <button className="btn primary sm" onClick={() => setExportOpen(true)}>
+            <Icon name="download" size={12} />
+            {t.export as string}
           </button>
         </div>
+      </header>
+
+      <div className="metrics">
+        <div className="metric">
+          <div className="m-lbl">{t.objectives as string}</div>
+          <div className="m-val">{dashboard.objectives.length}</div>
+          <div className="m-foot">
+            {threadCount} {(t.threads as string).toLowerCase()}
+          </div>
+        </div>
+        <div className="metric">
+          <div className="m-lbl">{t.confirmedSignals as string}</div>
+          <div className="m-val">
+            {dashboard.total_confirmed_signals}
+            <span style={{ fontSize: "0.4em", color: "var(--ink-3)", marginLeft: 4 }}>
+              / {allSignals.length}
+            </span>
+          </div>
+          <div className="m-foot">
+            {reports.length} {t.col_reports as string}
+            {pendingReport && (
+              <>
+                , <span style={{ color: "var(--l2-ink)" }}>1 {t.pendingReview as string}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="metric" title={`L1 / ${lang === "en" ? "confirmed" : "已確認"} = ${l1Count}/${confirmedSignals.length}`}>
+          <div className="m-lbl">{t.reportCoverage as string}</div>
+          <div className="m-val">
+            {Math.round(maturity * 100)}
+            <span style={{ fontSize: "0.4em", color: "var(--ink-3)" }}>%</span>
+          </div>
+          <div className="pbar">
+            <i style={{ width: `${maturity * 100}%` }} />
+          </div>
+          <div className="m-foot" style={{ marginTop: 2 }}>
+            {l1Count} L1 / {confirmedSignals.length} {lang === "en" ? "confirmed" : "已確認"}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3" title="Objective：這個計畫正在追蹤的改變目標">
-          <div className="text-2xl font-semibold text-gray-400">{dashboard.objectives.length}</div>
-          <div className="text-sm text-gray-500">Objective</div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3" title="Thread：同一主題的改變線索，串連不同報告裡的 Signal">
-          <div className="text-2xl font-semibold text-gray-400">
-            {dashboard.objectives.flatMap(o => o.threads).length}
+      {pendingReport && (
+        <div className="banner">
+          <div className="dot">A</div>
+          <div style={{ flex: 1 }}>
+            <div className="t">
+              {(t.newSignalsPending as (n: number) => string)(pendingReport.pending)}
+            </div>
+            <div className="s">{t.reviewToConfirm as string}</div>
           </div>
-          <div className="text-sm text-gray-500">Thread</div>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3" title="Signal：從報告中偵測到並經你確認的改變證據">
-          <div className="text-2xl font-semibold text-gray-400">{totalSignals}</div>
-          <div className="text-sm text-gray-500">已確認 Signal</div>
-        </div>
-      </div>
-
-      {exported && (
-        <div className="mb-6 bg-white border border-gray-200 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Markdown 匯出</span>
-            <button onClick={() => { navigator.clipboard.writeText(exported); showToast("已複製到剪貼簿") }} className="text-xs text-gray-400 hover:text-gray-700">複製</button>
-          </div>
-          <pre className="text-xs text-gray-600 whitespace-pre-wrap max-h-64 overflow-y-auto">{exported}</pre>
+          <Link
+            href={`/projects/${projectId}/review/${pendingReport.id}`}
+            className="btn accent"
+          >
+            {t.review as string} →
+          </Link>
         </div>
       )}
 
-      {reports.length > 0 && (
-        <div className="mb-6 bg-white border border-gray-200 rounded-xl p-5">
-          <div className="font-medium text-gray-900 mb-3">已上傳的報告</div>
-          <div className="space-y-2">
-            {reports.map(r => (
-              <div key={r.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <span className="font-medium text-gray-800">{r.name}</span>
-                  <span className="text-gray-400 ml-2">{r.report_date}</span>
+      <section>
+        <div className="sh">
+          <div className="sh-left">
+            <h2>{t.progressionOverview as string}</h2>
+            <span className="n">
+              · {threadCount} {(t.threads as string).toLowerCase()}
+            </span>
+          </div>
+          <div className="view-toggle">
+            <button
+              className={viewMode === "timeline" ? "on" : ""}
+              onClick={() => setViewMode("timeline")}
+            >
+              {t.viewTimeline as string}
+            </button>
+            <button
+              className={viewMode === "list" ? "on" : ""}
+              onClick={() => setViewMode("list")}
+            >
+              {t.viewList as string}
+            </button>
+          </div>
+        </div>
+        {viewMode === "timeline" ? (
+          <SwimLane dashboard={dashboard} axis={axis} pctFor={pctFor} onDotClick={(s) => {
+            // find the report id from report_name
+            const rep = reports.find((r) => r.name === s.report_name)
+            if (rep) router.push(`/projects/${projectId}/review/${rep.id}?sid=${s.signal_id}`)
+          }} />
+        ) : (
+          <div>
+            {dashboard.objectives.map((obj, i) => (
+              <ObjectiveCard
+                key={obj.objective_id}
+                obj={obj}
+                index={i}
+                projectId={projectId}
+                reports={reports}
+                onRefresh={refresh}
+              />
+            ))}
+            <AddObjectiveForm projectId={projectId} onRefresh={refresh} />
+          </div>
+        )}
+      </section>
+
+      {viewMode === "timeline" && (
+        <section>
+          <div className="sh">
+            <h2>{t.byObjective as string}</h2>
+          </div>
+          {dashboard.objectives.map((obj, i) => (
+            <ObjectiveCard
+              key={obj.objective_id}
+              obj={obj}
+              index={i}
+              projectId={projectId}
+              reports={reports}
+              onRefresh={refresh}
+            />
+          ))}
+          <AddObjectiveForm projectId={projectId} onRefresh={refresh} />
+        </section>
+      )}
+
+      <section>
+        <div className="sh">
+          <h2>{t.reports as string}</h2>
+          <span className="n">· {reports.length}</span>
+        </div>
+        <div className="rpt">
+          <div className="rpt-row head">
+            <div>{t.rp_name as string}</div>
+            <div>{t.rp_date as string}</div>
+            <div>{t.rp_signals as string}</div>
+            <div>{t.rp_status as string}</div>
+            <div />
+          </div>
+          {reports.map((r) => {
+            const pendingForThis = allSignals.filter((s) => s.report_name === r.name && s.status === "pending").length
+            const totalForThis = allSignals.filter((s) => s.report_name === r.name).length
+            return (
+              <div className="rpt-row" key={r.id}>
+                <div className="nm">{r.name}</div>
+                <div style={{ fontFamily: "var(--font-mono)", color: "var(--ink-3)" }}>
+                  {r.report_date}
                 </div>
-                <div className="flex items-center gap-2">
+                <div style={{ fontFamily: "var(--font-mono)" }}>{totalForThis}</div>
+                <div>
+                  {pendingForThis > 0 ? (
+                    <span className="chip l2" style={{ fontSize: 10 }}>
+                      {pendingForThis} {t.pendingReview as string}
+                    </span>
+                  ) : (
+                    <span className="chip l1" style={{ fontSize: 10 }}>
+                      {t.reviewed as string}
+                    </span>
+                  )}
+                </div>
+                <div className="ac">
                   <button
-                    disabled={redetecting === r.id}
+                    className="btn subtle sm"
                     onClick={async () => {
-                      if (!confirm("確定要用目前的分析模式重新偵測這份報告嗎？原有的 Signal 會被取代。")) return
-                      setRedetecting(r.id)
-                      setRedetectResult(null)
                       try {
-                        const res = await redetectReport(r.id)
-                        setRedetectResult(`${r.name}：偵測到 ${res.signals_detected} 個 Signal（${res.mode === "llm" ? "AI 模式" : "基礎模式"}）`)
-                        reload()
-                      } catch { setRedetectResult("重新分析失敗。") }
-                      finally { setRedetecting(null) }
+                        await redetectReport(r.id)
+                        showToast(t.reanalysedT as string)
+                        refresh()
+                      } catch (err) {
+                        showToast(String(err))
+                      }
                     }}
-                    className="text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                   >
-                    {redetecting === r.id ? "分析中..." : "重新分析"}
+                    {t.reanalyse as string}
                   </button>
                   <Link
-                    href={`/projects/${id}/review/${r.id}`}
-                    className="text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-100 hover:text-gray-700"
+                    href={`/projects/${projectId}/review/${r.id}`}
+                    className={`btn ${pendingForThis > 0 ? "primary" : "ghost"} sm`}
                   >
-                    審閱
+                    {t.review as string}
                   </Link>
                   <button
+                    className="del-sm"
+                    title={t.delete as string}
                     onClick={async () => {
-                      if (!confirm(`確定要刪除報告「${r.name}」嗎？該報告的所有 Signal 也會一併刪除。`)) return
-                      await deleteReport(r.id)
-                      getReports(projectId).then(setReports)
-                      reload()
-                      showToast(`已刪除報告「${r.name}」`)
+                      if (!confirm((t.confirmDeleteReport as (n: string) => string)(r.name))) return
+                      try {
+                        await deleteReport(r.id)
+                        showToast(lang === "en" ? `Deleted "${r.name}"` : `已刪除「${r.name}」`)
+                        refresh()
+                      } catch (err) {
+                        showToast(String(err))
+                      }
                     }}
-                    className="text-xs text-red-400 border border-red-200 px-2 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
                   >
-                    刪除
+                    ×
                   </button>
                 </div>
               </div>
-            ))}
-            {redetectResult && (
-              <div className="text-sm text-teal-700 bg-teal-50 rounded-lg px-3 py-2 mt-2">
-                {redetectResult}
-              </div>
-            )}
-          </div>
+            )
+          })}
         </div>
+      </section>
+
+      {exportOpen && (
+        <ExportModal projectId={projectId} onClose={() => setExportOpen(false)} />
       )}
+    </div>
+  )
+}
 
-      <div className="space-y-6">
-        {dashboard.objectives.map(obj => (
-          <div key={obj.objective_id} className="bg-white border border-gray-200 rounded-xl p-5">
-            {/* Objective 名稱 inline edit */}
-            {editingObjId === obj.objective_id ? (
-              <input
-                className="font-medium text-gray-900 mb-4 border-b-2 border-teal-400 outline-none bg-transparent w-full"
-                value={editObjTitle}
-                onChange={e => setEditObjTitle(e.target.value)}
-                onBlur={() => saveObjTitle(obj.objective_id, obj.objective_title)}
-                onKeyDown={e => { if (e.key === "Enter") saveObjTitle(obj.objective_id, obj.objective_title); if (e.key === "Escape") setEditingObjId(null) }}
-                autoFocus
-              />
-            ) : (
-              <div className="flex items-center justify-between mb-4">
-                <div
-                  className="font-medium text-gray-900 group cursor-pointer inline-flex items-center gap-1.5"
-                  onClick={() => { setEditingObjId(obj.objective_id); setEditObjTitle(obj.objective_title) }}
-                >
-                  {obj.objective_title}
-                  <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-sm" title="點擊編輯名稱">&#9998;</span>
-                </div>
-                <button
-                  onClick={async () => {
-                    const threadCount = obj.threads.length
-                    const msg = threadCount > 0
-                      ? `確定要刪除 Objective「${obj.objective_title}」嗎？底下的 ${threadCount} 個 Thread 也會一併刪除。`
-                      : `確定要刪除 Objective「${obj.objective_title}」嗎？`
-                    if (!confirm(msg)) return
-                    await deleteObjective(projectId, obj.objective_id)
-                    reload()
-                    showToast(`已刪除 Objective「${obj.objective_title}」`)
-                  }}
-                  className="text-xs text-red-400 border border-red-200 px-2 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
-                >
-                  刪除
-                </button>
-              </div>
-            )}
-            {obj.threads.length === 0 ? (
-              <div className="text-sm text-gray-400">尚未建立 Thread。上傳報告並完成審閱後，這裡會出現改變線索。</div>
-            ) : (
-              <div className="space-y-3">
-                {obj.threads.map(thread => (
-                  <div key={thread.thread_id} className="border border-gray-100 rounded-lg p-3">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      {/* Thread 名稱 inline edit */}
-                      {editingThreadId === thread.thread_id ? (
-                        <input
-                          className="text-sm font-medium text-gray-800 border-b-2 border-teal-400 outline-none bg-transparent flex-1"
-                          value={editThreadStmt}
-                          onChange={e => setEditThreadStmt(e.target.value)}
-                          onBlur={() => saveThreadStmt(thread.thread_id, thread.statement)}
-                          onKeyDown={e => { if (e.key === "Enter") saveThreadStmt(thread.thread_id, thread.statement); if (e.key === "Escape") setEditingThreadId(null) }}
-                          autoFocus
-                        />
-                      ) : (
-                        <span
-                          className="text-sm font-medium text-gray-800 group cursor-pointer inline-flex items-center gap-1"
-                          onClick={() => { setEditingThreadId(thread.thread_id); setEditThreadStmt(thread.statement) }}
-                        >
-                          {thread.statement}
-                          <span className="opacity-0 group-hover:opacity-100 text-gray-400 text-xs" title="點擊編輯名稱">&#9998;</span>
-                        </span>
-                      )}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-gray-400">{thread.signal_count} 個 Signal</span>
-                        {obj.threads.length > 1 && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`確定要刪除 Thread「${thread.statement}」嗎？其中的 Signal 會轉移到同 Objective 下的其他 Thread。`)) return
-                              const target = obj.threads.find(t => t.thread_id !== thread.thread_id)
-                              if (!target) return
-                              await deleteThread(thread.thread_id, target.thread_id)
-                              reload()
-                              showToast(`已刪除 Thread`)
-                            }}
-                            className="text-xs text-red-400 border border-red-200 px-1.5 py-0.5 rounded hover:bg-red-50 hover:text-red-600 transition-colors"
-                          >
-                            刪除
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {/* 進展摘要 */}
-                    <div className="mb-2">
-                      {editingSummary === thread.thread_id ? (
-                        <div className="space-y-2">
-                          <textarea
-                            className="w-full border border-teal-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-teal-200 leading-relaxed resize-y min-h-16"
-                            value={summaryText}
-                            onChange={e => setSummaryText(e.target.value)}
-                            placeholder="用你自己的話總結這條 Thread 的改變進展..."
-                            autoFocus
-                            onKeyDown={e => { if (e.key === "Escape") setEditingSummary(null) }}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                await updateThread(thread.thread_id, { progression_summary: summaryText.trim() })
-                                setEditingSummary(null)
-                                reload()
-                              }}
-                              className="text-xs bg-teal-600 text-white px-3 py-1 rounded-lg hover:bg-teal-700"
-                            >儲存</button>
-                            <button
-                              onClick={() => setEditingSummary(null)}
-                              className="text-xs text-gray-400 px-2 hover:text-gray-700"
-                            >取消</button>
-                          </div>
-                        </div>
-                      ) : thread.progression_summary ? (
-                        <p
-                          className="text-xs text-gray-500 italic cursor-pointer hover:text-gray-700 group flex items-start gap-1"
-                          onClick={() => { setEditingSummary(thread.thread_id); setSummaryText(thread.progression_summary || "") }}
-                        >
-                          <span>{thread.progression_summary}</span>
-                          <span className="opacity-0 group-hover:opacity-100 text-gray-400 shrink-0" title="點擊編輯">&#9998;</span>
-                        </p>
-                      ) : (
-                        <button
-                          onClick={() => { setEditingSummary(thread.thread_id); setSummaryText("") }}
-                          className="text-xs text-gray-400 hover:text-teal-600"
-                        >
-                          + 撰寫進展摘要
-                        </button>
-                      )}
-                    </div>
-                    <div className="space-y-1.5">
-                      {thread.signals.map(sig => (
-                        <div key={sig.signal_id} className="flex items-start gap-2">
-                          <LevelBadge level={sig.level} />
-                          <span className="text-xs text-gray-600">{sig.text}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+function SwimLane({
+  dashboard,
+  axis,
+  pctFor,
+  onDotClick,
+}: {
+  dashboard: Dashboard
+  axis: string[]
+  pctFor: (d: string) => number
+  onDotClick: (s: DashboardSignal) => void
+}) {
+  const { t } = useT()
+  return (
+    <div className="swim">
+      {dashboard.objectives.map((obj) => (
+        <div className="swim-obj" key={obj.objective_id}>
+          <div className="swim-obj-h">
+            <b>{obj.objective_title}</b>
           </div>
-        ))}
-
-        <div className="bg-white border border-dashed border-gray-300 rounded-xl p-4">
-          {showObjForm ? (
-            <form onSubmit={handleAddObjective} className="flex gap-2">
-              <input
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-300 placeholder:text-gray-600"
-                placeholder="Objective 名稱"
-                value={objTitle}
-                onChange={e => setObjTitle(e.target.value)}
-                autoFocus
-              />
-              <button type="submit" className="bg-teal-600 text-white text-sm px-4 py-2 rounded-lg">新增</button>
-              <button type="button" onClick={() => setShowObjForm(false)} className="text-sm text-gray-400 px-2">取消</button>
-            </form>
-          ) : (
-            <button onClick={() => setShowObjForm(true)} className="text-sm text-gray-400 hover:text-gray-700">
-              + 新增 Objective
-            </button>
+          {obj.threads.map((th) => (
+            <div className="lane" key={th.thread_id}>
+              <div className="nm" title={th.statement}>
+                {th.statement}
+              </div>
+              <div className="tr">
+                {axis.map((_, i) => (
+                  <span
+                    className="tr-tick"
+                    key={i}
+                    style={{ left: `${axis.length > 1 ? (i / (axis.length - 1)) * 100 : 50}%` }}
+                  />
+                ))}
+                {th.signals.map((s) => {
+                  const lvl = (s.level || "").toLowerCase()
+                  return (
+                    <span
+                      key={s.signal_id}
+                      className={`tr-dot ${lvl}`}
+                      style={{ left: `${pctFor(s.report_date)}%` }}
+                      title={`${s.report_date} · ${String(s.level).toUpperCase()} · ${s.text.slice(0, 80)}…`}
+                      onClick={() => onDotClick(s)}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="swim-axis">
+        <div />
+        <div className="ticks">
+          {axis.map((l, i) =>
+            i % 2 === 0 ? (
+              <span key={l + i}>{l}</span>
+            ) : (
+              <span key={l + i} style={{ opacity: 0 }}>
+                {l}
+              </span>
+            )
           )}
         </div>
+      </div>
+      <div className="legend">
+        <span>
+          <span className="dot-lvl l1" />
+          {t.lvlL1 as string} · {t.l1Desc as string}
+        </span>
+        <span>
+          <span className="dot-lvl l2" />
+          {t.lvlL2 as string} · {t.l2Desc as string}
+        </span>
+        <span>
+          <span className="dot-lvl l3" />
+          {t.lvlL3 as string} · {t.l3Desc as string}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function ObjectiveCard({
+  obj,
+  index,
+  projectId,
+  reports,
+  onRefresh,
+}: {
+  obj: Dashboard["objectives"][number]
+  index: number
+  projectId: number
+  reports: Report[]
+  onRefresh: () => void
+}) {
+  const { lang, t } = useT()
+  const { showToast } = useToast()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState("")
+  const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+  const romanNum = romans[index] || String(index + 1)
+  const confirmed = obj.threads.reduce(
+    (a, th) => a + th.signals.filter((s) => s.status === "confirmed").length,
+    0
+  )
+
+  const saveTitle = async () => {
+    const v = draft.trim()
+    if (!v || v === obj.objective_title) {
+      setEditing(false)
+      return
+    }
+    try {
+      await updateObjective(projectId, obj.objective_id, { title: v })
+      showToast(lang === "en" ? "Objective renamed" : "目標名稱已更新")
+      setEditing(false)
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm((t.confirmDeleteObj as (n: string, c: number) => string)(obj.objective_title, obj.threads.length))) return
+    try {
+      await deleteObjective(projectId, obj.objective_id)
+      showToast(lang === "en" ? `Deleted "${obj.objective_title}"` : `已刪除「${obj.objective_title}」`)
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  return (
+    <div className="obj">
+      <div className="obj-h">
+        <div className="obj-num">{romanNum}</div>
+        <div className="obj-body">
+          {editing ? (
+            <input
+              className="editable-input obj-t"
+              style={{ display: "block" }}
+              value={draft}
+              autoFocus
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveTitle()
+                if (e.key === "Escape") setEditing(false)
+              }}
+            />
+          ) : (
+            <h3
+              className="obj-t editable"
+              onClick={() => {
+                setEditing(true)
+                setDraft(obj.objective_title)
+              }}
+            >
+              {obj.objective_title}
+              <span className="edit-pencil" title={t.editTitle as string}>✎</span>
+            </h3>
+          )}
+          <div className="obj-stat">
+            <span>
+              <b>{obj.threads.length}</b> {(t.threads as string).toLowerCase()}
+            </span>
+            <span>
+              <b>{confirmed}</b> {(t.confirmedSignals as string).toLowerCase()}
+            </span>
+          </div>
+        </div>
+        <button className="del-sm" title={t.delete as string} onClick={handleDelete}>
+          ×
+        </button>
+      </div>
+      {obj.threads.length === 0 ? (
+        <div className="th-empty">{t.noThreadsYet as string}</div>
+      ) : (
+        obj.threads.map((th) => (
+          <ThreadBlock
+            key={th.thread_id}
+            thread={th}
+            objectiveId={obj.objective_id}
+            threadCount={obj.threads.length}
+            projectId={projectId}
+            reports={reports}
+            onRefresh={onRefresh}
+          />
+        ))
+      )}
+      <AddThreadForm
+        objectiveId={obj.objective_id}
+        onRefresh={onRefresh}
+      />
+    </div>
+  )
+}
+
+function ThreadBlock({
+  thread,
+  objectiveId,
+  threadCount,
+  projectId,
+  reports,
+  onRefresh,
+}: {
+  thread: DashboardThread
+  objectiveId: number
+  threadCount: number
+  projectId: number
+  reports: Report[]
+  onRefresh: () => void
+}) {
+  const { lang, t } = useT()
+  const { showToast } = useToast()
+  const [editingSum, setEditingSum] = useState(false)
+  const [sumDraft, setSumDraft] = useState(thread.progression_summary || "")
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState("")
+
+  const sigs = [...thread.signals].sort((a, b) => a.report_date.localeCompare(b.report_date))
+
+  const saveSum = async () => {
+    try {
+      await updateThread(thread.thread_id, { progression_summary: sumDraft })
+      showToast(t.savedT as string)
+      setEditingSum(false)
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  const saveTitle = async () => {
+    const v = titleDraft.trim()
+    if (!v || v === thread.statement) {
+      setEditingTitle(false)
+      return
+    }
+    try {
+      await updateThread(thread.thread_id, { statement: v })
+      showToast(lang === "en" ? "Thread renamed" : "主線名稱已更新")
+      setEditingTitle(false)
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  const handleDel = async () => {
+    if (threadCount <= 1) {
+      showToast(lang === "en" ? "Cannot delete the only thread" : "無法刪除唯一的主線")
+      return
+    }
+    if (!confirm((t.confirmDeleteThread as (n: string) => string)(thread.statement))) return
+    // need a target thread - just pick the first other thread in same objective via prompt
+    const targetId = prompt(
+      lang === "en"
+        ? "Move this thread's signals to another thread (enter thread id):"
+        : "將此主線的訊號移到另一個主線（輸入主線 ID）："
+    )
+    if (!targetId) return
+    try {
+      await deleteThread(thread.thread_id, Number(targetId))
+      showToast(lang === "en" ? "Thread deleted" : "主線已刪除")
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  return (
+    <div className="th">
+      <div className="th-h">
+        {editingTitle ? (
+          <input
+            className="editable-input"
+            style={{ fontSize: "calc(14px*var(--font-scale))", fontWeight: 600, flex: 1 }}
+            value={titleDraft}
+            autoFocus
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveTitle()
+              if (e.key === "Escape") setEditingTitle(false)
+            }}
+          />
+        ) : (
+          <h3
+            className="editable"
+            onClick={() => {
+              setEditingTitle(true)
+              setTitleDraft(thread.statement)
+            }}
+          >
+            {thread.statement}
+            <span className="edit-pencil" title={t.editTitle as string}>✎</span>
+          </h3>
+        )}
+        <span className="chip plain" style={{ fontSize: 10 }}>
+          {sigs.filter((s) => s.status === "confirmed").length} / {sigs.length}
+        </span>
+        <button className="del-sm" title={t.delete as string} onClick={handleDel}>
+          ×
+        </button>
+      </div>
+      {editingSum ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea
+            className="th-sum"
+            style={{
+              width: "100%",
+              minHeight: 70,
+              resize: "vertical",
+              background: "var(--bg-card)",
+              outline: "none",
+            }}
+            value={sumDraft}
+            onChange={(e) => setSumDraft(e.target.value)}
+            autoFocus
+          />
+          <div style={{ display: "flex", gap: 5 }}>
+            <button className="btn primary sm" onClick={saveSum}>
+              <Icon name="check" size={11} />
+              {t.save as string}
+            </button>
+            <button
+              className="btn subtle sm"
+              onClick={() => {
+                setEditingSum(false)
+                setSumDraft(thread.progression_summary || "")
+              }}
+            >
+              {t.cancel as string}
+            </button>
+          </div>
+        </div>
+      ) : thread.progression_summary ? (
+        <div className="th-sum" onClick={() => setEditingSum(true)}>
+          {thread.progression_summary}
+        </div>
+      ) : (
+        <div className="th-sum empty" onClick={() => setEditingSum(true)}>
+          + {t.addSummary as string}
+        </div>
+      )}
+      <div className="sig-list">
+        {sigs.map((s) => {
+          const rep = reports.find((r) => r.name === s.report_name)
+          const rereview = () => {
+            if (rep) {
+              window.location.href = `/projects/${projectId}/review/${rep.id}?sid=${s.signal_id}`
+            }
+          }
+          return (
+            <div className="sig-row compact" key={s.signal_id}>
+              <span>
+                <span className={`chip ${String(s.level).toLowerCase()}`}>
+                  {String(s.level).toUpperCase()}
+                </span>
+              </span>
+              <span className="x">{s.text}</span>
+              <span className="sig-acts">
+                <button
+                  className="sig-act"
+                  title={t.rereview as string}
+                  onClick={rereview}
+                >
+                  <Icon name="refresh" size={11} />
+                </button>
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function AddThreadForm({ objectiveId, onRefresh }: { objectiveId: number; onRefresh: () => void }) {
+  const { t } = useT()
+  const { showToast } = useToast()
+  const [open, setOpen] = useState(false)
+  const [v, setV] = useState("")
+
+  const submit = async () => {
+    const s = v.trim()
+    if (!s) return
+    try {
+      await createThread(objectiveId, s)
+      setV("")
+      setOpen(false)
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="th" style={{ padding: "8px 18px" }}>
+        <button className="btn subtle sm" onClick={() => setOpen(true)}>
+          <Icon name="plus" size={11} />
+          {t.addThread as string}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="th" style={{ padding: 12 }}>
+      <div className="new-th">
+        <Icon name="plus" size={12} />
+        <input
+          autoFocus
+          placeholder={t.newThreadName as string}
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit()
+            if (e.key === "Escape") setOpen(false)
+          }}
+          onBlur={() => v.trim() === "" && setOpen(false)}
+        />
+        <button className="btn primary sm" onClick={submit}>
+          {t.create as string}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AddObjectiveForm({ projectId, onRefresh }: { projectId: number; onRefresh: () => void }) {
+  const { t } = useT()
+  const { showToast } = useToast()
+  const [open, setOpen] = useState(false)
+  const [v, setV] = useState("")
+
+  const submit = async () => {
+    const s = v.trim()
+    if (!s) return
+    try {
+      await createObjective(projectId, s)
+      setV("")
+      setOpen(false)
+      onRefresh()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        className="btn ghost"
+        style={{ alignSelf: "flex-start" }}
+        onClick={() => setOpen(true)}
+      >
+        <Icon name="plus" size={12} />
+        {t.addObjective as string}
+      </button>
+    )
+  }
+
+  return (
+    <div className="obj" style={{ padding: 16 }}>
+      <div className="new-th">
+        <Icon name="plus" size={12} />
+        <input
+          autoFocus
+          placeholder={t.newObjectiveName as string}
+          value={v}
+          onChange={(e) => setV(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit()
+            if (e.key === "Escape") setOpen(false)
+          }}
+        />
+        <button className="btn primary sm" onClick={submit}>
+          {t.create as string}
+        </button>
       </div>
     </div>
   )
