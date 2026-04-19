@@ -26,7 +26,7 @@ export default function ProjectPage() {
   const [exportOpen, setExportOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState("")
-  const [redetecting, setRedetecting] = useState<number | null>(null)
+  const [redetecting, setRedetecting] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     try {
@@ -345,10 +345,10 @@ export default function ProjectPage() {
                 <div className="ac">
                   <button
                     className="btn subtle sm"
-                    disabled={redetecting !== null}
+                    disabled={redetecting.has(r.id)}
                     onClick={async () => {
-                      if (redetecting !== null) return
-                      setRedetecting(r.id)
+                      if (redetecting.has(r.id)) return
+                      setRedetecting((prev) => new Set(prev).add(r.id))
                       showToast(
                         lang === "en"
                           ? "Re-analysing… this can take minutes with local AI."
@@ -356,16 +356,24 @@ export default function ProjectPage() {
                       )
                       try {
                         await redetectReport(r.id)
-                        showToast(t.reanalysedT as string)
+                        showToast(
+                          lang === "en"
+                            ? `"${r.name}" re-analysed`
+                            : `「${r.name}」已重新分析`
+                        )
                         refresh()
                       } catch (err) {
                         showToast(String(err))
                       } finally {
-                        setRedetecting(null)
+                        setRedetecting((prev) => {
+                          const next = new Set(prev)
+                          next.delete(r.id)
+                          return next
+                        })
                       }
                     }}
                   >
-                    {redetecting === r.id
+                    {redetecting.has(r.id)
                       ? (lang === "en" ? "Re-analysing…" : "分析中…")
                       : (t.reanalyse as string)}
                   </button>

@@ -42,18 +42,25 @@ L1_KEYWORDS = {
     "enacted", "was enacted", "has been enacted",
     "ratified", "was ratified", "has been ratified",
     "signed into law", "passed into law", "codified",
+    # ── Approval / Endorsement (核准/背書) ──
+    "received approval", "gained approval", "was approved by",
+    "has been approved", "officially approved",
     # ── Establish / Institutionalize (制度建立) ──
     "formally established", "officially established",
     "was established", "were established", "has been established",
     "has established", "have established",
     "institutionalized", "was institutionalized",
     "operationalized", "was operationalized",
-    "mainstreamed", "was mainstreamed",
+    "mainstreamed", "was mainstreamed", "has been mainstreamed",
     # ── Formalize / Incorporate (正式納入) ──
     "formalized", "was formalized", "has been formalized",
     "formally incorporated", "officially incorporated",
     "was integrated", "has been integrated", "integrated into",
     "embedded into", "embedded in",
+    "incorporated into the curriculum", "adopted into the curriculum",
+    # ── Roll-out / Scale (規模化/推廣) ──
+    "rolled out nationally", "rolled out across", "was rolled out",
+    "scaled up", "was scaled up", "has been scaled up",
     # ── Launch / Endorse / Recognize (啟動/背書/承認) ──
     "formally launched", "officially launched",
     "formally endorsed", "officially endorsed",
@@ -61,20 +68,20 @@ L1_KEYWORDS = {
     "mandated", "gazetted", "officially gazetted",
     # ── Legal force (生效) ──
     "came into force", "entered into force", "took effect",
-    "now requires", "now mandates",
+    "now requires", "now mandates", "became mandatory",
     # ── Membership / Coalition (加入/結盟) ──
     "agreed to join", "joined the coalition", "agreed to cooperate",
-    "agreed to participate", "persuaded to join",
+    "agreed to participate",
     # ── Reform / Replace (改革/取代) ──
     "was reformed", "has been reformed",
     "was amended", "has been amended",
     "was replaced", "has been replaced",
     # ── Agreement language (合意) ──
-    "both sides agreed", "legislators agreed",
+    "both sides agreed",
     "approved", "unanimously approved",
     # Chinese
     "制度化", "正式採納", "通過", "確立", "同意加入",
-    "納入", "生效", "頒布", "修訂",
+    "納入", "生效", "頒布", "修訂", "推行",
 }
 
 L2_KEYWORDS = {
@@ -98,18 +105,20 @@ L2_KEYWORDS = {
     "piloting", "pilot program", "trial phase",
     "aiming to adopt", "intends to adopt", "intends to implement",
     "will begin adopting", "preparing to implement", "preparing to adopt",
+    # ── Drafting / Development (起草/研擬中) ──
+    "drafting the", "under development", "currently developing",
+    "in draft form", "at the drafting stage",
+    # ── Roll-out in progress (推動中) ──
+    "currently piloting", "being rolled out", "rolling out",
     # ── Directional movement (朝向) ──
-    "moving toward", "working toward", "transitioning to",
-    "shifting toward", "significant step toward",
+    "moving toward", "working toward", "transitioning to", "shifting toward",
     # ── Initiation (啟動行動) ──
     "established contacts", "initiated discussions", "initiated engagement",
     "embarked on", "commenced", "set up a",
     "formed a committee", "formed a coalition", "formed a working group",
-    "laid the groundwork", "setting the stage",
-    "proposed organizing", "proposed creating",
     # Chinese
     "計畫導入", "承諾", "試行", "初步同意",
-    "啟動", "籌備", "著手",
+    "啟動", "籌備", "著手", "研擬", "草擬",
 }
 
 L3_KEYWORDS = {
@@ -121,6 +130,7 @@ L3_KEYWORDS = {
     "showing interest in", "displayed interest",
     "receptive to", "open to exploring", "open to adopting",
     "expressed willingness", "willing to consider",
+    "requested training", "requesting information",
     # ── Awareness (意識/認知) ──
     "growing awareness of", "heightened awareness", "gaining awareness",
     "raised awareness", "raising awareness",
@@ -129,19 +139,22 @@ L3_KEYWORDS = {
     "beginning to explore",
     "recognition of the need", "recognized the need",
     "acknowledged the need", "acknowledged the importance",
+    # ── Concerns raised (提出擔憂) ──
+    "growing concern about", "rising concern about",
+    "raised concerns about",
     # ── Considering / Exploring (考慮/探索) ──
     "starting to consider", "considering",
     "exploring the possibility", "exploring options",
     "lean toward", "leaning toward",
     "discussing the possibility", "debating whether",
-    "prompted to", "curious about",
     # ── Early-stage engagement (初步接觸) ──
-    "legislators are now", "stakeholders acknowledge",
+    "stakeholders acknowledge",
     "initial dialogue", "preliminary discussions",
     "first exposure to",
+    "entered into dialogue", "opened dialogue with",
     # Chinese
     "表達興趣", "開始意識到", "討論中",
-    "有意願", "初步接觸", "認知到",
+    "有意願", "初步接觸", "認知到", "表達關切",
 }
 
 CONTEXT_SECTION_NAMES = {"background", "context"}
