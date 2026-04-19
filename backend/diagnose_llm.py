@@ -45,7 +45,7 @@ async def main():
     log(f"Total anchors: {len(anchors)}\n")
 
     client = AsyncOpenAI(base_url='http://localhost:11434/v1', api_key='ollama', timeout=120)
-    model = 'gemma4:e4b'
+    model = 'gemma4:e2b'
 
     stats = {
         'total': 0,

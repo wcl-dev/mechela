@@ -4,6 +4,7 @@ Evaluated 2026-04-02. Three approaches were tested for privacy-preserving local 
 
 > **Note (2026-04-04):** The default chat model has been changed from `phi4-mini` to `gemma3:4b` for better structured output quality. Test results below reflect the original phi4-mini evaluation.
 > **Note (2026-04-07):** Default upgraded to `gemma4:e4b` — better reasoning at similar resource cost (~5 GB RAM at 4-bit quantization, 128K context).
+> **Note (2026-04-19):** Default downgraded to `gemma4:e2b` for typical 8 GB GPUs (e.g. RX 7600) — e4b's 9.8 GB weights don't fit VRAM, causing CPU fallback and ~10x slowdown. e2b fits fully in VRAM at the cost of slightly weaker reasoning, still adequate for signal detection.
 
 ## Decision: Ollama
 
