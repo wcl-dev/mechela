@@ -117,8 +117,8 @@ export default function SettingsPage() {
       setProviderStatus(r)
       showToast(
         r.reachable
-          ? (lang === "en" ? "Provider reachable" : "連線正常")
-          : (lang === "en" ? "Provider unreachable" : "無法連線")
+          ? (t.providerReachableT as string)
+          : (t.providerUnreachableT as string)
       )
     } catch (err) {
       showToast(String(err))
@@ -132,7 +132,7 @@ export default function SettingsPage() {
           <div className="ph-meta">mechela</div>
           <h1 className="ph-title">{t.settings as string}</h1>
           <p className="ph-sub">
-            {lang === "en" ? "All settings are stored locally." : "所有設定皆儲存於本地。"}
+            {t.allSettingsLocal as string}
           </p>
         </div>
       </header>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
         <div className="set-grid">
           <div className="set-lbl">
             OpenAI API key
-            <p>{lang === "en" ? "Required for OpenAI mode." : "OpenAI 模式需要。"}</p>
+            <p>{t.openaiKeyHint as string}</p>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <input
@@ -191,7 +191,7 @@ export default function SettingsPage() {
         <div className="set-grid">
           <div className="set-lbl">
             Ollama
-            <p>{lang === "en" ? "Local model endpoint + chat model." : "本地模型端點與對話模型。"}</p>
+            <p>{t.ollamaConfigHint as string}</p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <input
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                 {t.save as string}
               </button>
               <button className="btn ghost" onClick={checkHealth}>
-                {lang === "en" ? "Check health" : "檢查連線"}
+                {t.checkHealth as string}
               </button>
               {providerStatus?.reachable !== undefined && (
                 <span
@@ -223,8 +223,8 @@ export default function SettingsPage() {
                   }}
                 >
                   {providerStatus.reachable
-                    ? (lang === "en" ? "reachable" : "可連線")
-                    : (lang === "en" ? "unreachable" : "無法連線")}
+                    ? (t.statusReachable as string)
+                    : (t.statusUnreachable as string)}
                 </span>
               )}
             </div>
@@ -263,7 +263,7 @@ export default function SettingsPage() {
                   />
                   <button className="btn ghost" onClick={() => addKw(g.k as any)}>
                     <Icon name="plus" size={12} />
-                    {lang === "en" ? "Add" : "新增"}
+                    {t.add as string}
                   </button>
                 </div>
                 <div className="kw-chips">
@@ -277,7 +277,7 @@ export default function SettingsPage() {
                   ))}
                   {list.length === 0 && (
                     <span className="kw-empty">
-                      {lang === "en" ? "No keywords yet" : "尚未新增"}
+                      {t.noKeywordsYet as string}
                     </span>
                   )}
                 </div>

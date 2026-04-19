@@ -41,9 +41,9 @@ function Sidebar({ projects, provider }: { projects: Project[]; provider: Provid
   const currentProjectId = params?.id ? Number(params.id) : null
 
   const modeMeta = {
-    "rule-based": { label: lang === "en" ? "Basic" : "基本", priv: t.priv_local as string },
-    ollama: { label: lang === "en" ? "Local AI" : "本地 AI", priv: t.priv_local as string },
-    openai: { label: "OpenAI", priv: t.priv_cloud as string },
+    "rule-based": { label: t.modeBasicT as string, priv: t.priv_local as string },
+    ollama: { label: t.modeLocalT as string, priv: t.priv_local as string },
+    openai: { label: t.modeOpenAIT as string, priv: t.priv_cloud as string },
   }
   const m = provider ? modeMeta[provider.provider] : modeMeta["rule-based"]
   const dotColor = m.priv === t.priv_cloud ? "var(--accent)" : "var(--ink-1)"
@@ -90,7 +90,7 @@ function Sidebar({ projects, provider }: { projects: Project[]; provider: Provid
         <Link
           href="/settings"
           className="mode-ind"
-          title={lang === "en" ? "Change detection mode" : "變更偵測模式"}
+          title={t.changeMode as string}
         >
           <span className="mode-dot" style={{ background: dotColor }} />
           <span className="mode-lbl">{m.label}</span>

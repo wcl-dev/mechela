@@ -54,7 +54,7 @@ export default function HomePage() {
     if (!name.trim()) return
     try {
       await createProject(name.trim(), desc.trim() || undefined)
-      showToast(lang === "en" ? `Created "${name.trim()}"` : `已建立「${name.trim()}」`)
+      showToast((t.createdProjectT as (n: string) => string)(name.trim()))
       setName("")
       setDesc("")
       setShowForm(false)
@@ -70,7 +70,7 @@ export default function HomePage() {
     if (!confirm((t.confirmDeleteProject as (n: string) => string)(p.name))) return
     try {
       await deleteProject(p.id)
-      showToast(lang === "en" ? `Deleted "${p.name}"` : `已刪除「${p.name}」`)
+      showToast((t.deletedProjectT as (n: string) => string)(p.name))
       refresh()
       window.dispatchEvent(new Event("mechela-refresh"))
     } catch (err) {
@@ -126,11 +126,7 @@ export default function HomePage() {
       )}
 
       {projects.length === 0 ? (
-        <div className="empty">
-          {lang === "en"
-            ? 'No projects yet. Click "New project" above to begin.'
-            : "尚未建立任何專案。點選上方「新增專案」開始。"}
-        </div>
+        <div className="empty">{t.emptyProjectsHint as string}</div>
       ) : (
         <div className="proj-list">
           {projects.map((p) => {

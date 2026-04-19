@@ -29,8 +29,8 @@ export default function UploadPage() {
 
   const submit = async () => {
     if (!file) return
-    if (!name.trim()) return showToast(lang === "en" ? "Name required" : "請填寫名稱")
-    if (!reportDate) return showToast(lang === "en" ? "Date required" : "請填寫日期")
+    if (!name.trim()) return showToast(t.nameRequired as string)
+    if (!reportDate) return showToast(t.dateRequired as string)
     setUploading(true)
     try {
       const fd = new FormData()
@@ -39,11 +39,7 @@ export default function UploadPage() {
       fd.append("report_date", reportDate)
       fd.append("file", file)
       const result = await uploadReport(fd)
-      showToast(
-        lang === "en"
-          ? `Detected ${result.signals_detected} signals`
-          : `偵測到 ${result.signals_detected} 個訊號`
-      )
+      showToast((t.detectedSignalsT as (n: number) => string)(result.signals_detected))
       router.push(`/projects/${projectId}/review/${result.report_id}`)
     } catch (err) {
       showToast(String(err))
@@ -57,11 +53,7 @@ export default function UploadPage() {
         <div>
           <div className="ph-meta">{t.upload as string}</div>
           <h1 className="ph-title">{t.upload as string}</h1>
-          <p className="ph-sub">
-            {lang === "en"
-              ? "Drop a .docx file and fill in its metadata. Signal detection runs immediately."
-              : "拖曳 .docx 檔案並填寫 metadata，系統會立即執行訊號偵測。"}
-          </p>
+          <p className="ph-sub">{t.uploadPageSub as string}</p>
         </div>
       </header>
 
@@ -113,7 +105,7 @@ export default function UploadPage() {
           <div style={{ display: "flex", gap: 6 }}>
             <button className="btn primary" onClick={submit} disabled={uploading}>
               <Icon name="upload" size={12} />
-              {uploading ? (lang === "en" ? "Uploading…" : "上傳中…") : (t.upload as string)}
+              {uploading ? (t.uploading as string) : (t.upload as string)}
             </button>
             <button
               className="btn subtle"

@@ -222,6 +222,12 @@ export default function ReviewPage() {
   }
 
   // Keyboard shortcuts
+  // Keep latest versions of handlers in a ref so the keyboard listener
+  // (registered once per editing/queue change) always calls the current
+  // closure — avoids stale-closure bugs when idx advances between keys.
+  const handlersRef = useRef({ setLevel, confirmIt, rejectIt })
+  handlersRef.current = { setLevel, confirmIt, rejectIt }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (editingText) return
@@ -235,15 +241,15 @@ export default function ReviewPage() {
         e.preventDefault()
         setIdx((i) => Math.max(i - 1, 0))
       }
-      if (e.key === "1") setLevel("L1")
-      if (e.key === "2") setLevel("L2")
-      if (e.key === "3") setLevel("L3")
-      if (e.key === "c" || e.key === "Enter") confirmIt()
-      if (e.key === "x" || e.key === "Backspace") rejectIt()
+      if (e.key === "1") handlersRef.current.setLevel("L1")
+      if (e.key === "2") handlersRef.current.setLevel("L2")
+      if (e.key === "3") handlersRef.current.setLevel("L3")
+      if (e.key === "c" || e.key === "Enter") handlersRef.current.confirmIt()
+      if (e.key === "x" || e.key === "Backspace") handlersRef.current.rejectIt()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [sigIds.length, editingText, d?.level])
+  }, [sigIds.length, editingText])
 
   const done = useMemo(
     () => Object.values(decisions).filter((x) => x.status !== "pending").length,
@@ -319,13 +325,13 @@ export default function ReviewPage() {
               <Icon name="doc" size={11} />{" "}
               {viewMode === "context" ? (
                 <>
-                  {lang === "en" ? "Context" : "前後文"} · ¶{currentPara?.paragraph_index}
+                  {t.viewContext as string} · ¶{currentPara?.paragraph_index}
                   {" · "}
                   {currentPara?.section || "—"}
                 </>
               ) : (
                 <>
-                  {lang === "en" ? "Full report" : "完整報告"} · {anchors.length} ¶
+                  {t.viewFullReport as string} · {anchors.length} ¶
                 </>
               )}
             </div>
@@ -334,13 +340,13 @@ export default function ReviewPage() {
                 className={viewMode === "context" ? "on" : ""}
                 onClick={() => setViewMode("context")}
               >
-                {lang === "en" ? "Context" : "前後文"}
+                {t.viewContext as string}
               </button>
               <button
                 className={viewMode === "full" ? "on" : ""}
                 onClick={() => setViewMode("full")}
               >
-                {lang === "en" ? "Full report" : "完整報告"}
+                {t.viewFullReport as string}
               </button>
             </div>
           </div>
@@ -545,7 +551,7 @@ export default function ReviewPage() {
                   <span>{report.name}</span>
                   {editingText && (
                     <span style={{ marginLeft: "auto", color: "var(--accent-ink)" }}>
-                      {lang === "en" ? "Editing — click out to save" : "編輯中 — 點外部儲存"}
+                      {t.editingHint as string}
                     </span>
                   )}
                 </div>
@@ -667,17 +673,17 @@ export default function ReviewPage() {
       <div className="kbd-bar">
         <span>
           <span className="kbd">J</span>
-          {lang === "en" ? "next" : "下一個"}
+          {t.kbNext as string}
         </span>
         <span>
           <span className="kbd">K</span>
-          {lang === "en" ? "prev" : "上一個"}
+          {t.kbPrev as string}
         </span>
         <span>
           <span className="kbd">1</span>
           <span className="kbd">2</span>
           <span className="kbd">3</span>
-          {lang === "en" ? "level" : "等級"}
+          {t.kbLevel as string}
         </span>
         <span>
           <span className="kbd">C</span>
@@ -737,7 +743,7 @@ function KeywordMatchHint({
         <div key={l}>
           {l}:{" "}
           {(kws as any)[l]
-            .map((k: string) => (lang === "en" ? `"${k}"` : `「${k}」`))
+            .map((k: string) => `${t.kwQuoteOpen}${k}${t.kwQuoteClose}`)
             .join("、")}
         </div>
       ))}

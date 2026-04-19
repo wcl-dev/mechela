@@ -55,7 +55,7 @@ export default function ProjectPage() {
     }
     try {
       await updateProject(projectId, { name: v })
-      showToast(lang === "en" ? "Project name updated" : "專案名稱已更新")
+      showToast(t.projectRenamedT as string)
       setEditingName(false)
       refresh()
       window.dispatchEvent(new Event("mechela-refresh"))
@@ -210,7 +210,7 @@ export default function ProjectPage() {
             )}
           </div>
         </div>
-        <div className="metric" title={`L1 / ${lang === "en" ? "confirmed" : "已確認"} = ${l1Count}/${confirmedSignals.length}`}>
+        <div className="metric" title={`L1 / ${t.confirmedLabel as string} = ${l1Count}/${confirmedSignals.length}`}>
           <div className="m-lbl">{t.reportCoverage as string}</div>
           <div className="m-val">
             {Math.round(maturity * 100)}
@@ -220,7 +220,7 @@ export default function ProjectPage() {
             <i style={{ width: `${maturity * 100}%` }} />
           </div>
           <div className="m-foot" style={{ marginTop: 2 }}>
-            {l1Count} L1 / {confirmedSignals.length} {lang === "en" ? "confirmed" : "已確認"}
+            {l1Count} L1 / {confirmedSignals.length} {t.confirmedLabel as string}
           </div>
         </div>
       </div>
@@ -349,18 +349,10 @@ export default function ProjectPage() {
                     onClick={async () => {
                       if (redetecting.has(r.id)) return
                       setRedetecting((prev) => new Set(prev).add(r.id))
-                      showToast(
-                        lang === "en"
-                          ? "Re-analysing… this can take minutes with local AI."
-                          : "重新分析中… 本地 AI 可能需要數分鐘。"
-                      )
+                      showToast(t.reanalysingToast as string)
                       try {
                         await redetectReport(r.id)
-                        showToast(
-                          lang === "en"
-                            ? `"${r.name}" re-analysed`
-                            : `「${r.name}」已重新分析`
-                        )
+                        showToast((t.reanalysedReportT as (n: string) => string)(r.name))
                         refresh()
                       } catch (err) {
                         showToast(String(err))
@@ -374,7 +366,7 @@ export default function ProjectPage() {
                     }}
                   >
                     {redetecting.has(r.id)
-                      ? (lang === "en" ? "Re-analysing…" : "分析中…")
+                      ? (t.reanalysingButton as string)
                       : (t.reanalyse as string)}
                   </button>
                   <Link
@@ -390,7 +382,7 @@ export default function ProjectPage() {
                       if (!confirm((t.confirmDeleteReport as (n: string) => string)(r.name))) return
                       try {
                         await deleteReport(r.id)
-                        showToast(lang === "en" ? `Deleted "${r.name}"` : `已刪除「${r.name}」`)
+                        showToast((t.deletedReportT as (n: string) => string)(r.name))
                         refresh()
                       } catch (err) {
                         showToast(String(err))
@@ -526,7 +518,7 @@ function ObjectiveCard({
     }
     try {
       await updateObjective(projectId, obj.objective_id, { title: v })
-      showToast(lang === "en" ? "Objective renamed" : "目標名稱已更新")
+      showToast(t.objectiveRenamedT as string)
       setEditing(false)
       onRefresh()
     } catch (err) {
@@ -538,7 +530,7 @@ function ObjectiveCard({
     if (!confirm((t.confirmDeleteObj as (n: string, c: number) => string)(obj.objective_title, obj.threads.length))) return
     try {
       await deleteObjective(projectId, obj.objective_id)
-      showToast(lang === "en" ? `Deleted "${obj.objective_title}"` : `已刪除「${obj.objective_title}」`)
+      showToast((t.deletedObjectiveT as (n: string) => string)(obj.objective_title))
       onRefresh()
     } catch (err) {
       showToast(String(err))
@@ -654,7 +646,7 @@ function ThreadBlock({
     }
     try {
       await updateThread(thread.thread_id, { statement: v })
-      showToast(lang === "en" ? "Thread renamed" : "主線名稱已更新")
+      showToast(t.threadRenamedT as string)
       setEditingTitle(false)
       onRefresh()
     } catch (err) {
@@ -664,20 +656,16 @@ function ThreadBlock({
 
   const handleDel = async () => {
     if (threadCount <= 1) {
-      showToast(lang === "en" ? "Cannot delete the only thread" : "無法刪除唯一的主線")
+      showToast(t.cannotDeleteOnlyThread as string)
       return
     }
     if (!confirm((t.confirmDeleteThread as (n: string) => string)(thread.statement))) return
     // need a target thread - just pick the first other thread in same objective via prompt
-    const targetId = prompt(
-      lang === "en"
-        ? "Move this thread's signals to another thread (enter thread id):"
-        : "將此主線的訊號移到另一個主線（輸入主線 ID）："
-    )
+    const targetId = prompt(t.moveSignalsPrompt as string)
     if (!targetId) return
     try {
       await deleteThread(thread.thread_id, Number(targetId))
-      showToast(lang === "en" ? "Thread deleted" : "主線已刪除")
+      showToast(t.threadDeletedT as string)
       onRefresh()
     } catch (err) {
       showToast(String(err))
