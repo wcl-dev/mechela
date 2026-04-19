@@ -1,6 +1,10 @@
-"""Diagnostic: run detect_llm on a test report and log every decision."""
+"""Diagnostic: run detect_llm on a test report and log every decision.
+
+Writes progressively to diagnose_output.txt so progress is visible even
+while the script is still running (avoids stdout buffering issues under
+shell redirect)."""
 import asyncio
-import sys, io, json
+import sys, io, json, re
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -9,36 +13,36 @@ sys.path.insert(0, '.')
 from openai import AsyncOpenAI
 from app.services.parser import parse_docx
 from app.services.detector import (
-    _is_heading, _is_structural, _kw_match,
-    ACTIVITY_VERBS, L1_KEYWORDS, L2_KEYWORDS, L3_KEYWORDS, SKIP_SECTIONS,
+    _is_heading, _is_structural,
+    SKIP_SECTIONS,
 )
-import re
 
 
-SYSTEM_PROMPT = """You are an M&E analyst. Analyze each paragraph and determine if it describes a Change Signal.
+OUT = Path('diagnose_output.txt')
 
-A Change Signal describes a DURABLE STATE CHANGE in an identifiable actor (person, organization, policy, practice).
+def log(line: str = ""):
+    with OUT.open('a', encoding='utf-8') as f:
+        f.write(line + "\n")
+        f.flush()
+    print(line, flush=True)
 
-IS a signal: a new policy adopted, a commitment signed, an institution restructured, a practice formally changed.
-NOT a signal: an activity performed, an event held, a document produced, a meeting attended, a plan proposed without action, a section heading, a reflection or lesson learned, a statistic or headcount.
 
-When in doubt, set is_signal to false. Only mark true when the paragraph clearly describes a state that has changed or is changing.
-
-Level definitions:
-- L1: Confirmed/institutionalized
-- L2: Committed intent or trial
-- L3: Awareness/interest only
-
-Respond with valid JSON only:
-{"is_signal": true/false, "is_context_signal": true/false, "level": "L1"/"L2"/"L3"/null, "subject": "...", "signal_type": "capability"/"institutional"/"relational"/null, "confidence": 0.0-1.0, "reasoning": "..."}"""
+# Import the live SYSTEM_PROMPT from detector (keep in sync)
+from app.services.detector import detect_llm as _dl  # noqa
+# Extract prompt from function's local string via textual read instead
+SYSTEM_PROMPT_SOURCE = Path('app/services/detector.py').read_text(encoding='utf-8')
+_m = re.search(r'SYSTEM_PROMPT = """(.*?)"""', SYSTEM_PROMPT_SOURCE, re.DOTALL)
+SYSTEM_PROMPT = _m.group(1) if _m else ""
+assert SYSTEM_PROMPT, "Failed to extract SYSTEM_PROMPT"
 
 
 async def main():
+    OUT.write_text("", encoding='utf-8')  # reset
     report_path = Path(r'c:\Users\Cordura87\mechela\demo\MEL test report\B__test_3rd Quarterly Report.docx')
-    print(f"=== Running on: {report_path.name} ===\n")
+    log(f"=== Running on: {report_path.name} ===")
 
     anchors = parse_docx(report_path)
-    print(f"Total anchors: {len(anchors)}\n")
+    log(f"Total anchors: {len(anchors)}\n")
 
     client = AsyncOpenAI(base_url='http://localhost:11434/v1', api_key='ollama', timeout=120)
     model = 'gemma4:e4b'
@@ -49,6 +53,7 @@ async def main():
         'skipped_structural': 0,
         'llm_called': 0,
         'llm_parse_error': 0,
+        'llm_other_error': 0,
         'llm_said_no': 0,
         'llm_said_yes': 0,
         'post_heading': 0,
@@ -56,7 +61,6 @@ async def main():
         'post_low_conf': 0,
         'final_signals': 0,
     }
-    yes_signals = []
 
     for i, anchor in enumerate(anchors):
         stats['total'] += 1
@@ -68,12 +72,13 @@ async def main():
             continue
         stats['llm_called'] += 1
 
+        raw = ""
         try:
             resp = await client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Paragraph:\n{anchor.context_text}"},
+                    {"role": "user", "content": f"Paragraph:\n{anchor.text}"},
                 ],
                 response_format={"type": "json_object"},
                 temperature=0,
@@ -85,45 +90,44 @@ async def main():
             data = json.loads(raw)
 
             is_sig = data.get("is_signal")
-            if not is_sig:
-                stats['llm_said_no'] += 1
-                continue
-            stats['llm_said_yes'] += 1
             conf = float(data.get("confidence", 0.7))
             level = data.get("level")
-            print(f"[¶{anchor.paragraph_index}] LLM YES  level={level} conf={conf:.2f}")
-            print(f"  text: {anchor.text[:90]}...")
 
-            # Simulate post-processing filter
+            if not is_sig:
+                stats['llm_said_no'] += 1
+                log(f"[¶{anchor.paragraph_index}] NO   conf={conf:.2f} | reason: {data.get('reasoning','')[:80]}")
+                continue
+            stats['llm_said_yes'] += 1
+            log(f"[¶{anchor.paragraph_index}] YES  level={level} conf={conf:.2f}")
+            log(f"  text: {anchor.text[:100]}...")
+
             if _is_heading(anchor.text):
                 stats['post_heading'] += 1
-                print(f"  → POST-FILTER: heading")
+                log(f"  → FILTERED: heading")
                 continue
             if anchor.section in SKIP_SECTIONS:
                 stats['post_skip_section'] += 1
-                print(f"  → POST-FILTER: skip section")
+                log(f"  → FILTERED: skip-section ({anchor.section})")
                 continue
             if conf < 0.4:
                 stats['post_low_conf'] += 1
-                print(f"  → POST-FILTER: low confidence")
+                log(f"  → FILTERED: low-conf ({conf:.2f})")
                 continue
             stats['final_signals'] += 1
-            yes_signals.append((anchor.paragraph_index, level, conf))
-            print(f"  → KEPT")
+            log(f"  → KEPT")
         except json.JSONDecodeError as e:
             stats['llm_parse_error'] += 1
-            print(f"[¶{anchor.paragraph_index}] JSON ERROR: {e}")
-            print(f"  raw: {raw[:200]}")
+            log(f"[¶{anchor.paragraph_index}] JSON ERROR: {e}")
+            log(f"  raw (first 200 chars): {raw[:200]}")
         except Exception as e:
-            print(f"[¶{anchor.paragraph_index}] ERROR: {type(e).__name__}: {e}")
+            stats['llm_other_error'] += 1
+            log(f"[¶{anchor.paragraph_index}] ERROR: {type(e).__name__}: {e}")
 
-        if i % 20 == 0:
-            print(f"\n[progress {i+1}/{len(anchors)} stats so far: {stats}]\n")
-
-    print(f"\n=== Final Stats ===")
+    log("")
+    log("=== Final Stats ===")
     for k, v in stats.items():
-        print(f"  {k}: {v}")
-    print(f"\nFinal signals: {len(yes_signals)}")
+        log(f"  {k}: {v}")
+    log(f"\nFinal signals: {stats['final_signals']}")
 
 
 if __name__ == "__main__":

@@ -340,41 +340,47 @@ async def detect_llm(
 
 A Change Signal describes a DURABLE STATE CHANGE in an identifiable actor (person, organization, policy, practice).
 
-IS a signal: a new policy adopted, a commitment signed, an institution restructured, a practice formally changed.
-NOT a signal: an activity performed, an event held, a document produced, a meeting attended, a plan proposed without action, a section heading, a reflection or lesson learned, a statistic or headcount.
+IS a signal: a new policy adopted, a commitment signed, an institution restructured, a practice formally changed, an external actor expressing interest or agreeing to do something concrete.
+NOT a signal: a pure activity description with no outcome (e.g. "we held a workshop"), a list of attendees, a section heading, a logistical update, a statistic or headcount.
 
-When in doubt, set is_signal to false. Only mark true when the paragraph clearly describes a state that has changed or is changing.
+CRITICAL: Signals are OFTEN embedded inside descriptions of meetings, workshops, sessions, or discussions. Do not reject a paragraph just because it mentions an activity or event — look for the state change described within it. Typical pattern: "During the [meeting/workshop/session], [actor] [agreed to / committed to / adopted / joined / endorsed / expressed interest in / acknowledged the need for] [specific thing]."
 
 Level definitions (do NOT inflate — choose the lowest level that fits):
-- L1: Confirmed/institutionalized — the change is done (adopted, enacted, formally established, integrated)
-- L2: Committed intent or trial — concrete commitment exists (agreed to start, signed MOU, piloting)
+- L1: Confirmed/institutionalized — the change is done (adopted, enacted, formally established, integrated, signed into law)
+- L2: Committed intent or trial — concrete commitment exists (agreed to start, signed MOU, piloting, working on draft)
 - L3: Awareness/interest only — no commitment yet (discussing, expressing interest, growing awareness)
 
 ## Examples
 
 Paragraph: "The Ministry of Education formally adopted the new inclusive education policy in March 2024, requiring all public schools to integrate accessibility standards into their curricula."
-Answer: {"is_signal": true, "is_context_signal": false, "level": "L1", "subject": "Ministry of Education", "signal_type": "institutional", "confidence": 0.92, "reasoning": "The ministry has formally adopted a policy — this is a confirmed institutional change."}
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L1", "subject": "Ministry of Education", "signal_type": "institutional", "confidence": 0.92, "reasoning": "The ministry has formally adopted a policy — a confirmed institutional change."}
+
+Paragraph: "During the coalition-building session, five organisations agreed to form a working group on platform-auditing methodologies and submit a draft charter within 90 days."
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L2", "subject": "Five civil society organisations", "signal_type": "institutional", "confidence": 0.82, "reasoning": "Although wrapped in a 'session' description, the paragraph reports a concrete agreement by identifiable actors to form a working group with a timeline — committed intent."}
+
+Paragraph: "At the third advisory meeting, two legislators from opposing parties agreed to join the coalition and publicly endorse the draft principles at the next parliamentary session."
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L1", "subject": "Two legislators from opposing parties", "signal_type": "relational", "confidence": 0.88, "reasoning": "Meeting is the wrapper, but the legislators joining the coalition is a confirmed relational change."}
 
 Paragraph: "The two municipalities signed a memorandum of understanding to jointly develop a cross-border water management framework over the next 18 months."
-Answer: {"is_signal": true, "is_context_signal": false, "level": "L2", "subject": "The two municipalities", "signal_type": "institutional", "confidence": 0.75, "reasoning": "An MOU was signed with a concrete plan, but the framework is not yet implemented — committed intent."}
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L2", "subject": "The two municipalities", "signal_type": "institutional", "confidence": 0.78, "reasoning": "An MOU was signed with a concrete plan — committed intent."}
 
 Paragraph: "Local government leaders expressed interest in replicating the community health model after attending the regional showcase event."
-Answer: {"is_signal": true, "is_context_signal": false, "level": "L3", "subject": "Local government leaders", "signal_type": "relational", "confidence": 0.55, "reasoning": "Interest was expressed but no commitment or concrete action was taken — awareness only."}
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L3", "subject": "Local government leaders", "signal_type": "relational", "confidence": 0.58, "reasoning": "Interest expressed by an external actor — awareness only, but a valid L3 signal."}
+
+Paragraph: "Six responses to the after-event survey indicated rising interest among civil society in continued engagement on the topic."
+Answer: {"is_signal": true, "is_context_signal": false, "level": "L3", "subject": "Civil society respondents", "signal_type": "relational", "confidence": 0.52, "reasoning": "Embedded in survey results, but clearly reports external-actor interest in continued engagement."}
 
 Paragraph: "The project team conducted 12 training workshops across 5 provinces, reaching a total of 340 participants including teachers and school administrators."
-Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes an activity performed by the project team, not a durable state change in an external actor."}
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "Pure activity count by the reporting team, with no downstream state change mentioned."}
 
 Paragraph: "The following are screening criteria; priority will be given to those that meet more of them."
-Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This is a transitional sentence introducing methodology, not a change in any actor."}
-
-Paragraph: "We organized a two-day regional dialogue event bringing together practitioners and policymakers to share experiences on the topic."
-Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes an event organized by the reporting team — an activity, not a state change."}
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "Transitional sentence introducing methodology, not a change in any actor."}
 
 Paragraph: "Participants included representatives from government agencies, academic institutions, private sector companies, and community-based organizations."
-Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This lists who attended an event — participant composition, not a durable change."}
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "Lists who attended an event — participant composition, not a durable change."}
 
-Paragraph: "To address this, we have consulted with numerous technical experts while continuously identifying new potential partners and resources."
-Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "This describes the reporting organization's own outreach activity, not an external actor changing state."}
+Paragraph: "We organized a two-day regional dialogue event bringing together practitioners and policymakers to share experiences on the topic."
+Answer: {"is_signal": false, "is_context_signal": false, "level": null, "subject": null, "signal_type": null, "confidence": 0.0, "reasoning": "Describes an event organized by the reporting team with no mentioned outcome — an activity, not a state change."}
 
 ## Output format
 
@@ -399,7 +405,7 @@ You MUST respond with valid JSON only. Do NOT wrap the JSON in markdown code fen
                 model=model,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Paragraph:\n{anchor.context_text}"},
+                    {"role": "user", "content": f"Paragraph:\n{anchor.text}"},
                 ],
                 response_format={"type": "json_object"},
                 temperature=0,
