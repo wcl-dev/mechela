@@ -47,14 +47,20 @@ export default function SettingsPage() {
   const saveProvider = async (mode: UiMode) => {
     setUiMode(mode)
     try {
-      const status = await setProvider({
+      await setProvider({
         provider: UI_TO_PROVIDER[mode],
         openai_api_key: mode === "openai" ? apiKey : undefined,
         ollama_base_url: ollamaUrl,
         ollama_chat_model: ollamaModel,
         ollama_embed_model: "nomic-embed-text",
       })
-      setProviderStatus(status)
+      // Refresh full status (includes reachable + available models) after save
+      try {
+        const health = await checkProviderHealth()
+        setProviderStatus(health)
+      } catch {
+        // Health check failure doesn't invalidate the save
+      }
       showToast(t.savedT as string)
       window.dispatchEvent(new Event("mechela-refresh"))
     } catch (err) {

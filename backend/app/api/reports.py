@@ -120,6 +120,8 @@ async def upload_report(
 @router.post("/{report_id}/redetect", response_model=dict)
 async def redetect_signals(report_id: int, db: AsyncSession = Depends(get_db)):
     """Re-run signal detection on an existing report using the current mode."""
+    from sqlalchemy import delete
+
     report = await db.get(Report, report_id)
     if not report:
         raise HTTPException(404, "Report not found")
@@ -132,22 +134,25 @@ async def redetect_signals(report_id: int, db: AsyncSession = Depends(get_db)):
     if not anchors_db:
         raise HTTPException(400, "Report has no parsed anchors")
 
-    # Count existing confirmed signals for warning
+    # Count existing confirmed signals for warning (snapshot before delete)
     existing = await db.execute(
         select(Signal).join(Anchor).where(Anchor.report_id == report.id)
     )
     old_signals = existing.scalars().all()
+    old_signal_ids = [s.id for s in old_signals]
     confirmed_count = sum(1 for s in old_signals if s.status.value == "confirmed")
 
-    # Delete old thread_signal links and signals
-    for s in old_signals:
-        thread_links = await db.execute(
-            select(ThreadSignal).where(ThreadSignal.signal_id == s.id)
+    # Bulk-delete thread links and signals in one transaction, then commit
+    # *before* kicking off the slow LLM call — avoids holding the SQLite
+    # write lock for minutes while Ollama runs.
+    if old_signal_ids:
+        await db.execute(
+            delete(ThreadSignal).where(ThreadSignal.signal_id.in_(old_signal_ids))
         )
-        for tl in thread_links.scalars().all():
-            await db.delete(tl)
-        await db.delete(s)
-    await db.flush()
+        await db.execute(
+            delete(Signal).where(Signal.id.in_(old_signal_ids))
+        )
+    await db.commit()
 
     # Re-parse the DOCX to get ParsedAnchor objects for the detector
     parsed = parse_docx(Path(report.file_path))

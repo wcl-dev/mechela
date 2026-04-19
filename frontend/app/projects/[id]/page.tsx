@@ -26,6 +26,7 @@ export default function ProjectPage() {
   const [exportOpen, setExportOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState("")
+  const [redetecting, setRedetecting] = useState<number | null>(null)
 
   useEffect(() => {
     try {
@@ -344,17 +345,29 @@ export default function ProjectPage() {
                 <div className="ac">
                   <button
                     className="btn subtle sm"
+                    disabled={redetecting !== null}
                     onClick={async () => {
+                      if (redetecting !== null) return
+                      setRedetecting(r.id)
+                      showToast(
+                        lang === "en"
+                          ? "Re-analysing… this can take minutes with local AI."
+                          : "重新分析中… 本地 AI 可能需要數分鐘。"
+                      )
                       try {
                         await redetectReport(r.id)
                         showToast(t.reanalysedT as string)
                         refresh()
                       } catch (err) {
                         showToast(String(err))
+                      } finally {
+                        setRedetecting(null)
                       }
                     }}
                   >
-                    {t.reanalyse as string}
+                    {redetecting === r.id
+                      ? (lang === "en" ? "Re-analysing…" : "分析中…")
+                      : (t.reanalyse as string)}
                   </button>
                   <Link
                     href={`/projects/${projectId}/review/${r.id}`}
