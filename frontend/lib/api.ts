@@ -85,8 +85,10 @@ export const reviewSignal = (
     method: "PATCH",
     body: JSON.stringify(data),
   })
-export const getThreadSuggestions = (signalId: number, objectiveId: number) =>
-  req<ThreadCandidate[]>(`/signals/${signalId}/thread-suggestions?objective_id=${objectiveId}`)
+export const getThreadSuggestions = (signalId: number, objectiveId?: number) => {
+  const q = objectiveId !== undefined ? `?objective_id=${objectiveId}` : ""
+  return req<ThreadCandidate[]>(`/signals/${signalId}/thread-suggestions${q}`)
+}
 
 // Threads
 export const getThreads = (objectiveId: number) =>

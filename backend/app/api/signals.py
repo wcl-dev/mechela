@@ -4,7 +4,8 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.services.llm_client import get_llm_client
 from app.models.signal import Signal, SignalLevel, SignalStatus
-from app.models.report import Anchor
+from app.models.report import Anchor, Report
+from app.models.project import Objective
 from app.models.thread import Thread, ThreadSignal
 from app.schemas.signal import SignalOut, SignalReview
 from app.services.matcher import match_rule_based, match_llm
@@ -86,16 +87,34 @@ async def review_signal(
 @router.get("/{signal_id}/thread-suggestions")
 async def suggest_threads(
     signal_id: int,
-    objective_id: int,
+    objective_id: int | None = None,
     db: AsyncSession = Depends(get_db),
 ):
+    """Rank threads by similarity to the signal text.
+    If objective_id is given, restrict to threads under that objective.
+    Otherwise, search all threads in the signal's project."""
     signal = await db.get(Signal, signal_id)
     if not signal:
         raise HTTPException(404, "Signal not found")
 
-    result = await db.execute(
-        select(Thread).where(Thread.objective_id == objective_id)
-    )
+    if objective_id is not None:
+        result = await db.execute(
+            select(Thread).where(Thread.objective_id == objective_id)
+        )
+    else:
+        # Resolve project from signal → anchor → report → project, then
+        # fetch all threads across all of that project's objectives.
+        anchor = await db.get(Anchor, signal.anchor_id)
+        if not anchor:
+            raise HTTPException(404, "Signal's anchor not found")
+        report = await db.get(Report, anchor.report_id)
+        if not report:
+            raise HTTPException(404, "Signal's report not found")
+        result = await db.execute(
+            select(Thread)
+            .join(Objective, Thread.objective_id == Objective.id)
+            .where(Objective.project_id == report.project_id)
+        )
     threads = [{"id": t.id, "statement": t.statement} for t in result.scalars().all()]
 
     llm = get_llm_client()

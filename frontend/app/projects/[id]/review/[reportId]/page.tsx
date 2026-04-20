@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toast"
 import { useT } from "@/lib/i18n"
 import {
   getAnchors, getSignals, reviewSignal, createSignal, getDashboard, createThread,
+  getThreadSuggestions,
 } from "@/lib/api"
 import type { Signal, SignalLevel, SignalStatus, Dashboard, DashboardThread } from "@/lib/types"
 
@@ -46,6 +47,10 @@ export default function ReviewPage() {
   const [report, setReport] = useState<{ name: string; date: string } | null>(null)
   const [anchors, setAnchors] = useState<Anchor[]>([])
   const [signals, setSignals] = useState<Signal[]>([])
+  const [suggestedFromBackend, setSuggestedFromBackend] = useState<
+    { thread_id: number; statement: string; score: number }[]
+  >([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [idx, setIdx] = useState(0)
   const [editingText, setEditingText] = useState(false)
@@ -102,6 +107,10 @@ export default function ReviewPage() {
     try { localStorage.setItem("mechela_review_view", viewMode) } catch {}
   }, [viewMode])
 
+  // Fetch backend-computed thread suggestions whenever the current signal
+  // changes. Backend uses TF-IDF (rule-based) or embeddings (LLM mode),
+  // which handles semantic differences better than client-side word-overlap.
+
   // Build signal queue sorted by paragraph index
   const sigIds = useMemo(() => {
     return anchors
@@ -132,6 +141,27 @@ export default function ReviewPage() {
       if (parent) parent.scrollTop = el.offsetTop - parent.offsetTop - 80
     }
   }, [sid, viewMode])
+
+  // Fetch backend-computed thread suggestions when the active signal changes
+  useEffect(() => {
+    if (!sid) {
+      setSuggestedFromBackend([])
+      return
+    }
+    let cancelled = false
+    setLoadingSuggestions(true)
+    getThreadSuggestions(sid)
+      .then((list) => {
+        if (!cancelled) setSuggestedFromBackend(list)
+      })
+      .catch(() => {
+        if (!cancelled) setSuggestedFromBackend([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSuggestions(false)
+      })
+    return () => { cancelled = true }
+  }, [sid])
 
   // Decision mutation + save
   const setLevel = (lv: SignalLevel) => {
@@ -272,23 +302,47 @@ export default function ReviewPage() {
   }
   const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
-  // Text-match scoring for thread suggestions
+  // Thread suggestions: prefer backend's semantic/TF-IDF ranking.
+  // If backend returns empty (network error, all below threshold, etc.),
+  // fall back to simple client-side word-overlap so the user never sees
+  // a completely empty panel.
   const suggested = useMemo(() => {
     if (!d) return []
     const threads = allThreads()
-    return threads
-      .map((th) => {
+    const threadById = new Map(threads.map((th) => [th.thread_id, th]))
+
+    let candidates: { thread: DashboardThread; match: number; isCurrent: boolean }[] = []
+
+    if (suggestedFromBackend.length > 0) {
+      // Primary: backend-ranked results
+      candidates = suggestedFromBackend
+        .map((s) => {
+          const th = threadById.get(s.thread_id)
+          if (!th) return null
+          return { thread: th, match: s.score, isCurrent: th.thread_id === d.threadId }
+        })
+        .filter((x): x is { thread: DashboardThread; match: number; isCurrent: boolean } => x !== null)
+    } else if (!loadingSuggestions) {
+      // Fallback: client-side word overlap
+      candidates = threads.map((th) => {
         const words = th.statement.toLowerCase().split(/\s+/).filter((w) => w.length > 3)
         let hits = 0
-        words.forEach((w) => {
-          if (d.text.toLowerCase().includes(w)) hits++
-        })
+        words.forEach((w) => { if (d.text.toLowerCase().includes(w)) hits++ })
         const match = hits / Math.max(1, words.length)
         return { thread: th, match, isCurrent: th.thread_id === d.threadId }
       })
+    }
+
+    // Ensure the currently-assigned thread is included even if not in top-N
+    if (d.threadId && !candidates.some((x) => x.thread.thread_id === d.threadId)) {
+      const th = threadById.get(d.threadId)
+      if (th) candidates.unshift({ thread: th, match: 0, isCurrent: true })
+    }
+
+    return candidates
       .sort((a, b) => (b.isCurrent ? 1 : 0) - (a.isCurrent ? 1 : 0) || b.match - a.match)
       .slice(0, 3)
-  }, [d?.text, d?.threadId, dashboard])
+  }, [suggestedFromBackend, loadingSuggestions, d?.text, d?.threadId, dashboard])
 
   const handleCreateThread = async () => {
     const v = newThreadDraft.trim()
