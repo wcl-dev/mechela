@@ -137,7 +137,7 @@ Go to **Settings** and select one of three modes:
 | Mode | Setup | Privacy |
 |------|-------|---------|
 | **Basic** (default) | None | All data stays local |
-| **Local AI** | Run `setup_local_ai.bat` (Windows) or `./setup_local_ai.sh` (Mac/Linux) to install Ollama + models (~2.8 GB, one time) | All data stays local |
+| **Local AI** | Run `setup_local_ai.bat` (Windows) or `./setup_local_ai.sh` (Mac/Linux) to install Ollama + models (~7.5 GB, one time) | All data stays local |
 | **OpenAI** | Paste your OpenAI API key | Report text sent to OpenAI |
 
 **Recommended: Local AI** — gives you AI-powered analysis with full privacy. After running the setup script, select "Local AI" in Settings, click Save, then Test Connection to confirm.

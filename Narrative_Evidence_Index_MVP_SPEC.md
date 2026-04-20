@@ -271,7 +271,7 @@ erDiagram
 ## Frontend
 
 -   Next.js
--   Tailwind CSS
+-   Custom CSS with OKLCH design tokens (bureau theme)
 
 ## Infrastructure
 

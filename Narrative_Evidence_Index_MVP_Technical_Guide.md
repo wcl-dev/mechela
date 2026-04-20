@@ -219,7 +219,7 @@ Q3: Institutionalized
 ## Frontend
 
 -   Next.js
--   Tailwind CSS
+-   Custom CSS with OKLCH design tokens (bureau theme)
 -   JWT authentication
 
 ## Infrastructure (Free Tier)

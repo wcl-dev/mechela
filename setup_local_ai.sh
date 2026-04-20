@@ -33,12 +33,12 @@ fi
 
 # Pull chat model
 echo ""
-echo "[..] Pulling gemma3:4b chat model (~3.3 GB)..."
+echo "[..] Pulling gemma4:e2b chat model (~7.2 GB)..."
 echo "    This may take a few minutes on first run."
-if ollama pull gemma3:4b; then
-    echo "[OK] gemma3:4b ready."
+if ollama pull gemma4:e2b; then
+    echo "[OK] gemma4:e2b ready."
 else
-    echo "[ERROR] Failed to pull gemma3:4b. Is Ollama running?"
+    echo "[ERROR] Failed to pull gemma4:e2b. Is Ollama running?"
     echo "  Try: ollama serve   (in another terminal)"
     exit 1
 fi

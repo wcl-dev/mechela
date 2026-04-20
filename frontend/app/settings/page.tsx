@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const [providerStatus, setProviderStatus] = useState<ProviderStatus | null>(null)
   const [apiKey, setApiKey] = useState("")
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434/v1")
-  const [ollamaModel, setOllamaModel] = useState("gemma4:e4b")
+  const [ollamaModel, setOllamaModel] = useState("gemma4:e2b")
   const [kw, setKw] = useState<CustomKeywords>({ L1: [], L2: [], L3: [] })
   const [kwd, setKwd] = useState({ L1: "", L2: "", L3: "", ignore: "" })
   const [ignoreList, setIgnoreList] = useState<string[]>([])
@@ -202,7 +202,7 @@ export default function SettingsPage() {
             />
             <input
               className="kw-in"
-              placeholder="gemma4:e4b"
+              placeholder="gemma4:e2b"
               value={ollamaModel}
               onChange={(e) => setOllamaModel(e.target.value)}
             />

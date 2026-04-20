@@ -25,7 +25,7 @@ mechela/
 │   │   ├── services/ # Business logic (parser, detector, matcher)
 │   │   └── core/     # Config, DB, settings
 │   └── pyproject.toml
-├── frontend/         # Next.js + Tailwind
+├── frontend/         # Next.js + custom CSS (OKLCH design tokens, bureau theme)
 │   └── app/          # App Router pages
 └── demo/             # Demo DOCX file for onboarding
 ```

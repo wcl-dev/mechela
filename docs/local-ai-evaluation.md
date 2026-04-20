@@ -36,6 +36,8 @@ Ollama was selected as the sole local AI provider. Nexa SDK and llama-cpp-python
 
 ## Quality Test Results (demo_final_report_en.docx, 19 paragraphs)
 
+*Historical evaluation from 2026-04-02 (phi4-mini baseline). Current default is `gemma4:e2b` — see top-of-file notes.*
+
 | Mode | Signals | L1 | L2 | L3 | Time |
 |------|---------|----|----|-----|------|
 | Rule-based | 3 | 3 | 0 | 0 | instant |
@@ -54,10 +56,12 @@ Ollama was selected as the sole local AI provider. Nexa SDK and llama-cpp-python
 | Company acquisition | Low | MIT license protects existing code |
 | RAM insufficient (<8GB) | Medium | Degrades gracefully; rule-based always available |
 
-## Models Used
+## Models Used (current)
 
-- **Chat**: phi4-mini (3.8B params, ~2.5GB) — good structured JSON output
+- **Chat**: gemma4:e2b (5.1B params with embeddings, ~7.2GB Q4_K_M) — fits fully in 8GB VRAM
 - **Embedding**: nomic-embed-text (137M params, ~270MB) — fast, 768-dim vectors
+
+Historical defaults: phi4-mini (2026-04-02 → 2026-04-04) → gemma3:4b (→ 2026-04-07) → gemma4:e4b (→ 2026-04-19) → gemma4:e2b (current).
 
 ## Project Health (as of 2026-04-02)
 

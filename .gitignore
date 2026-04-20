@@ -28,3 +28,6 @@ backend/diagnose_output.txt
 
 # ── Claude Code internals ─────────────────────────────────
 .claude/
+
+# ── Test DOCX fixtures (kept locally, not tracked) ────────
+demo/MEL test report/*.docx
