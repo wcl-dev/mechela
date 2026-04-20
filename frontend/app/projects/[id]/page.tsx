@@ -424,34 +424,52 @@ function SwimLane({
           <div className="swim-obj-h">
             <b>{obj.objective_title}</b>
           </div>
-          {obj.threads.map((th) => (
-            <div className="lane" key={th.thread_id}>
-              <div className="nm" title={th.statement}>
-                {th.statement}
-              </div>
-              <div className="tr">
-                {axis.map((_, i) => (
-                  <span
-                    className="tr-tick"
-                    key={i}
-                    style={{ left: `${axis.length > 1 ? (i / (axis.length - 1)) * 100 : 50}%` }}
-                  />
-                ))}
-                {th.signals.map((s) => {
-                  const lvl = (s.level || "").toLowerCase()
-                  return (
+          {obj.threads.map((th) => {
+            // Group signals by date within this thread so overlapping dots
+            // can be offset horizontally instead of stacking on one pixel.
+            const byDate = new Map<string, DashboardSignal[]>()
+            th.signals.forEach((s) => {
+              const arr = byDate.get(s.report_date) || []
+              arr.push(s)
+              byDate.set(s.report_date, arr)
+            })
+            return (
+              <div className="lane" key={th.thread_id}>
+                <div className="nm" title={th.statement}>
+                  {th.statement}
+                </div>
+                <div className="tr">
+                  {axis.map((_, i) => (
                     <span
-                      key={s.signal_id}
-                      className={`tr-dot ${lvl}`}
-                      style={{ left: `${pctFor(s.report_date)}%` }}
-                      title={`${s.report_date} · ${String(s.level).toUpperCase()} · ${s.text.slice(0, 80)}…`}
-                      onClick={() => onDotClick(s)}
+                      className="tr-tick"
+                      key={i}
+                      style={{ left: `${axis.length > 1 ? (i / (axis.length - 1)) * 100 : 50}%` }}
                     />
-                  )
-                })}
+                  ))}
+                  {th.signals.map((s) => {
+                    const lvl = (s.level || "").toLowerCase()
+                    const cluster = byDate.get(s.report_date)!
+                    const idx = cluster.indexOf(s)
+                    const total = cluster.length
+                    // Center the cluster around the date: for total=3, offsets are -12, 0, +12 px
+                    const offsetPx = total > 1 ? (idx - (total - 1) / 2) * 12 : 0
+                    return (
+                      <span
+                        key={s.signal_id}
+                        className={`tr-dot ${lvl}`}
+                        style={{
+                          left: `${pctFor(s.report_date)}%`,
+                          marginLeft: `${offsetPx}px`,
+                        }}
+                        title={`${s.report_date} · ${String(s.level).toUpperCase()} · ${s.text.slice(0, 80)}…`}
+                        onClick={() => onDotClick(s)}
+                      />
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       ))}
       <div className="swim-axis">
