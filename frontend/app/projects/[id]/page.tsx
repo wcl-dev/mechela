@@ -9,6 +9,7 @@ import { ExportModal } from "@/components/ExportModal"
 import {
   getDashboard, getReports, redetectReport, deleteReport, updateThread, deleteThread,
   createThread, updateProject, updateObjective, deleteObjective, createObjective,
+  getSignals,
 } from "@/lib/api"
 import type { Dashboard, DashboardSignal, DashboardThread, Report } from "@/lib/types"
 
@@ -27,6 +28,12 @@ export default function ProjectPage() {
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState("")
   const [redetecting, setRedetecting] = useState<Set<number>>(new Set())
+  // Counts of signals by status, keyed by report_id — derived from
+  // per-report /signals calls. Dashboard's thread signals only include
+  // already-assigned ones, so pending counts aren't visible there.
+  const [reportSignalCounts, setReportSignalCounts] = useState<
+    Record<number, { pending: number; total: number }>
+  >({})
 
   useEffect(() => {
     try {
@@ -40,7 +47,22 @@ export default function ProjectPage() {
 
   const refresh = useCallback(() => {
     getDashboard(projectId).then(setDashboard).catch(() => {})
-    getReports(projectId).then(setReports).catch(() => {})
+    getReports(projectId).then(async (list) => {
+      setReports(list)
+      // Fetch pending/total signal counts for each report (parallel)
+      const entries = await Promise.all(
+        list.map(async (r) => {
+          try {
+            const sigs = await getSignals(r.id)
+            const pending = sigs.filter((s) => s.status === "pending").length
+            return [r.id, { pending, total: sigs.length }] as const
+          } catch {
+            return [r.id, { pending: 0, total: 0 }] as const
+          }
+        })
+      )
+      setReportSignalCounts(Object.fromEntries(entries))
+    }).catch(() => {})
   }, [projectId])
 
   useEffect(() => {
@@ -74,26 +96,17 @@ export default function ProjectPage() {
   }, [dashboard])
 
   const pendingReport = useMemo(() => {
-    // naive: any report where signals are still pending
-    if (!dashboard) return null
-    const pendingSignalsByReport: Record<string, number> = {}
-    dashboard.objectives.forEach((o) =>
-      o.threads.forEach((th) =>
-        th.signals.forEach((s) => {
-          if (s.status === "pending") {
-            pendingSignalsByReport[s.report_name] = (pendingSignalsByReport[s.report_name] || 0) + 1
-          }
-        })
-      )
-    )
-    // find a report that has pending signals
+    // Find the most recent report that still has pending signals.
+    // reportSignalCounts is authoritative — includes pending signals that
+    // aren't yet assigned to threads.
     for (const r of reports) {
-      if (pendingSignalsByReport[r.name] > 0) {
-        return { ...r, pending: pendingSignalsByReport[r.name] }
+      const counts = reportSignalCounts[r.id]
+      if (counts && counts.pending > 0) {
+        return { ...r, pending: counts.pending }
       }
     }
     return null
-  }, [dashboard, reports])
+  }, [reports, reportSignalCounts])
 
   const { axis, minT, maxT } = useMemo(() => {
     if (allSignals.length === 0)
@@ -322,8 +335,9 @@ export default function ProjectPage() {
             <div />
           </div>
           {reports.map((r) => {
-            const pendingForThis = allSignals.filter((s) => s.report_name === r.name && s.status === "pending").length
-            const totalForThis = allSignals.filter((s) => s.report_name === r.name).length
+            const counts = reportSignalCounts[r.id] || { pending: 0, total: 0 }
+            const pendingForThis = counts.pending
+            const totalForThis = counts.total
             return (
               <div className="rpt-row" key={r.id}>
                 <div className="nm">{r.name}</div>
