@@ -1,8 +1,13 @@
 # Mechela Demo Data — B_ Series Reports
 
-四份 de-identified 季報及對應的專案結構、關鍵字匹配彙整，供 demo 使用。
+> **這是 demo 場景專用的參考資料（cheat sheet）**，不是 Mechela 的使用說明或開發文件。
+> 如果你想了解工具本身怎麼用，請看：
+> - 使用者（中文）：[mechela使用說明_正體中文.md](../../mechela使用說明_正體中文.md)
+> - 開發者（English）：[README.md](../../README.md)
+>
+> 這份檔案記錄了 demo 時使用的 B_ 系列測試資料，以及我們對這批資料做過哪些處理（objective 命名、thread summary、關鍵字比對結果等），demo 當天當參考用。
 
-**來源**：`B__test_1st/2nd/3rd Quarterly Report.docx` + `B__test_Final Narrative Report.docx`
+**資料來源**：`B__test_1st/2nd/3rd Quarterly Report.docx` + `B__test_Final Narrative Report.docx`（de-identified 測試報告）
 
 ---
 

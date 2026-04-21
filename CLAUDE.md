@@ -1,15 +1,15 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) and other AI coding assistants when working in this repository.
 
-## Product
+**Canonical references** (read these first when the question is about the product rather than the code):
+- [README.md](README.md) — product purpose, feature list, signal-level definitions, setup, usage
+- [docs/local-ai-evaluation.md](docs/local-ai-evaluation.md) — model choice rationale and historical migrations
+- [mechela使用說明_正體中文.md](mechela使用說明_正體中文.md) — end-user manual in Traditional Chinese
 
-**Mechela** — Narrative Evidence Index & Change Progression Builder
+This file focuses on **architecture, conventions, and design decisions** — the things you need to write consistent code here, not things a user would read.
 
-A local-first M&E assistant tool for NGO mid-to-senior executives. Transforms narrative reports (DOCX) into structured, traceable Change Threads with citation-level evidence anchoring.
-
-**Core user flow:**
-Upload DOCX → Parse anchors → Detect Change Signals → Match Threads → ABC Review → Temporal Dashboard → Export Markdown
+---
 
 ## Architecture
 
@@ -36,65 +36,72 @@ mechela/
 
 ### Backend
 ```bash
-# Install dependencies (run once)
 cd backend
-py -m pip install -e ".[dev]"
-
-# Start backend (port 8000)
-py -m uvicorn app.main:app --reload
-
-# API docs
-open http://localhost:8000/docs
-
-# Run tests
-py -m pytest
+py -m pip install -e ".[dev]"          # install once
+py -m uvicorn app.main:app --reload    # start on port 8000
+py -m pytest                           # run tests
+# API docs: http://localhost:8000/docs
 ```
 
 ### Frontend
 ```bash
-# Start frontend (port 3000)
 cd frontend
-npm run dev
+npm run dev                            # start on port 3000
 ```
 
 ## Key Design Decisions
 
-**Signal detection — dual mode:**
-- LLM mode (OpenAI API key required): semantic understanding, outputs L1/L2/L3 + confidence score
-- Rule-based mode (no key): keyword-based candidate extraction, all output requires human review in ABC Review
+**Signal detection — three modes:**
+- Rule-based (no setup): keyword lists + semantic-group filtering
+- Ollama local (gemma4:e2b + nomic-embed-text): on-device, no data leaves the machine
+- OpenAI: highest accuracy, data sent to OpenAI
 
-**Signal levels:**
-- L1: Confirmed/institutionalized change (past tense + institutional verb)
-- L2: Committed intent or trial (agreement/plan + concrete action taken)
-- L3: Awareness/interest only (no commitment)
-- Pending: Ambiguous, flagged for human judgment
+See [README.md](README.md#signal-detection) for signal-level definitions (L1/L2/L3/Context/Pending). Do not duplicate those definitions here.
 
-**Context Signal:** Paragraphs from Background sections describing external policy/law changes. Tagged separately, not counted as Thread evidence.
+**Signal level `context`:** Auto-assigned when a paragraph's section matches `background` / `context` keywords in the parser. Represents external policy/law environment — counted and displayed, but visually distinct (purple dots in swim-lane).
 
 **Parser rules:**
 - DOCX only (PDF is Phase 2)
 - Extracts paragraph text + table cell text
-- Each Signal carries a context window (target paragraph + one before/after)
+- Each Anchor carries a context window (prev + current + next paragraph) stored as `Anchor.context_text`; used by Review's Context mode and as LLM input historically (now LLM gets just the current paragraph — see `detect_llm` for rationale)
 
 **Thread rules:**
 - Must belong to an Objective
-- Required fields: objective_id + statement
+- Required fields: `objective_id` + `statement`
 - Delete: all Signals must be reassigned first; last Thread in project cannot be deleted
 - Merge: user picks which statement to keep, all Signals consolidated
 
 **ABC Review difference by mode:**
-- LLM mode: confirm or modify machine output
-- Rule-based mode: user decides Signal validity and Level (heavier workload, UI must show warning)
+- LLM mode: confirm or modify machine output; "custom keyword second opinion" UI flags mismatches between LLM level and user-defined keywords
+- Rule-based mode: user decides Signal validity and Level (heavier workload)
 
 **Local storage:**
 - SQLite DB at `backend/mechela.db`
 - Uploaded files at `backend/uploads/`
+- User-specific settings at `backend/user_settings.json` (gitignored)
 - No cloud infrastructure
 
-**API Key:** Stored in user Settings after login. Without key → rule-based fallback.
+**Frontend i18n:**
+- Custom provider at [frontend/lib/i18n.tsx](frontend/lib/i18n.tsx), English + Traditional Chinese
+- Always route user-facing strings through `t.key` — no `lang === "en" ? "..." : "..."` ternaries (only exception: conditional CSS styling tied to active language)
+- Parameterised strings use function-form keys: `(t.deletedReportT as (n: string) => string)(name)`
+
+## Conventions worth preserving
+
+- Git: never `git add -A` / `git add .` — always stage explicit files, verify against commit message (see memory)
+- Python: no Pydantic `-Settings` import missing — `pydantic-settings` is a required dep
+- Windows-first dev: paths use forward slashes in Python, commands use `py` (not `python`); `bash` available via Git Bash but do NOT use Windows CRLF expectations inside `.sh` scripts
+- Frontend state patterns:
+  - Track in-flight operations per-resource (e.g. `redetecting: Set<number>`) to allow parallel actions
+  - Use `useRef` to break React stale-closure traps when a long-lived effect (like keyboard listener) needs the latest handler function
 
 ## MVP Scope
 
-In: DOCX parsing (with tables + context window), dual-mode Signal detection, Context Signal tagging, Only-Outputs Warning, ABC Review UI, Thread CRUD (create/edit/delete/merge), Thread matching, Citation Markdown output, Export (Thread + Signals + Citations as MD), cross-report search (within Project), Temporal Dashboard, API Key settings, Demo DOCX file.
+See [README.md](README.md#features-mvp) for the feature list. What's NOT in scope:
+- PDF parsing, vector search, export JSON/CSV, audit log, executable packaging, cross-project search, multi-user collaboration (all Phase 2)
+- Chinese signal detection (known gap — regex `\b` word-boundary doesn't work on Chinese; see memory `Chinese detection gap`)
 
-Out (Phase 2): PDF parsing, vector search, export JSON/CSV, audit log, executable packaging, cross-project search, multi-user collaboration.
+## Related docs
+
+- [docs/local-ai-evaluation.md](docs/local-ai-evaluation.md) — why Ollama, why gemma4:e2b
+- Demo plan: `.claude/plans/joyful-drifting-shannon.md` (not in repo; user's local plan)
