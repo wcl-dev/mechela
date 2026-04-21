@@ -27,8 +27,10 @@ mechela/
 │   └── pyproject.toml
 ├── frontend/         # Next.js + custom CSS (OKLCH design tokens, bureau theme)
 │   └── app/          # App Router pages
-└── demo/             # Demo DOCX file for onboarding
+└── docs/             # Design notes (e.g. local AI evaluation)
 ```
+
+*(Demo / test DOCX fixtures are kept locally but not tracked — see `.gitignore`.)*
 
 **Data hierarchy:** `Project → Objective → Thread → Signal → Anchor (Citation)`
 
