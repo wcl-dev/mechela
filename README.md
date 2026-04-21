@@ -79,50 +79,50 @@ Mechela runs entirely on your computer — no account, no subscription, no data 
 
 ---
 
-### Step 1 — Download Mechela
+### Step 1 — Download and install (one time only)
 
-Open a terminal and run:
+Open **one** terminal window:
+- **Windows**: press `Win` + `R`, type `cmd`, press Enter
+- **Mac**: press `Cmd` + Space, type `Terminal`, press Enter
+- **Linux**: open your distro's terminal app
+
+Paste the following block **in one go** (select all lines together, then paste + Enter). It downloads the code and installs all dependencies:
 
 ```bash
 git clone https://github.com/wcl-dev/mechela.git
 cd mechela
-```
-
-This creates a `mechela` folder on your computer with all the code.
-
----
-
-### Step 2 — Install dependencies (one time only)
-
-**Backend:**
-```bash
 cd backend
 py -m pip install -e ".[dev]"
-```
-
-**Frontend:**
-```bash
-cd frontend
+cd ../frontend
 npm install
+cd ..
 ```
 
-This may take a few minutes the first time.
+This takes about 5 minutes the first time. When it finishes, your terminal will be sitting **inside the `mechela` folder** — exactly where Step 2 needs it.
+
+> **Why paste everything together?** Each `cd` command is relative — it only works while you're in the right folder. Running the block as one avoids "No such directory" errors that happen if you paste commands one at a time into different terminals.
+
+> **Closed the terminal or came back later?** Open a new terminal and navigate to the `mechela` folder first. For example, if you ran the install in `C:\Users\You\`, do `cd C:\Users\You\mechela` on Windows (or `cd ~/mechela` on Mac/Linux).
+
+If you see errors, see [Troubleshooting](#troubleshooting).
 
 ---
 
-### Step 3 — Start Mechela
+### Step 2 — Start Mechela
 
-**Windows — double-click `start.bat`** in the `mechela` folder. Two terminal windows will open and your browser will navigate to `http://localhost:3000` automatically.
+**Windows — easiest way:** in File Explorer, open the `mechela` folder and **double-click `start.bat`**. Two black terminal windows will pop up (Backend + Frontend), and your browser will open `http://localhost:3000` automatically. Leave those two terminals running while you use Mechela — closing them stops the app.
 
-**Mac / Linux — run manually** (two separate terminal tabs):
+**Mac / Linux — manual start:** open **two separate terminal tabs**. In each, navigate to the mechela folder first, then run the command. Replace `path/to/mechela` with wherever you cloned it (e.g. `~/mechela`):
 
 ```bash
-# Tab 1 — backend
-cd mechela/backend
+# Tab 1 — backend (leave this running)
+cd path/to/mechela/backend
 python -m uvicorn app.main:app --reload
+```
 
-# Tab 2 — frontend
-cd mechela/frontend
+```bash
+# Tab 2 — frontend (leave this running)
+cd path/to/mechela/frontend
 npm run dev
 ```
 
@@ -130,7 +130,7 @@ Then open `http://localhost:3000` in your browser.
 
 ---
 
-### Step 4 — Choose a detection mode
+### Step 3 — Choose a detection mode
 
 Go to **Settings** and select one of three modes:
 
