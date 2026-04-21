@@ -249,18 +249,6 @@ Signals start as **candidates** after upload. ABC Review moves them to **confirm
 
 ---
 
-## Roadmap
-
-| Phase | Scope | Status |
-|-------|-------|--------|
-| **Phase 1** | Technical setup — Python, Node.js, project structure | ✅ Done |
-| **Phase 2** | Backend core — DOCX parser, signal detector, thread matcher, API | ✅ Done |
-| **Phase 3** | Frontend — all pages, ABC Review UI, dashboard, export | ✅ Done |
-| **Phase 4** | Testing & quality — end-to-end tests, demo DOCX, edge case validation | ✅ Done |
-| **Phase 5** | Deployment — GitHub release, startup scripts, distribution | ✅ Done |
-
----
-
 ## Notes on LLM Usage
 
 - **Local AI** uses [Ollama](https://ollama.com/) with `gemma4:e2b` (chat) and `nomic-embed-text` (embeddings) — all inference runs on your machine
