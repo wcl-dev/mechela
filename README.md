@@ -84,7 +84,7 @@ Mechela runs entirely on your computer — no account, no subscription, no data 
 Open a terminal and run:
 
 ```bash
-git clone https://github.com/your-org/mechela.git
+git clone https://github.com/wcl-dev/mechela.git
 cd mechela
 ```
 
