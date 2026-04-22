@@ -1,17 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.models.thread import ThreadType
 
 
 class ThreadCreate(BaseModel):
     objective_id: int
-    statement: str
+    statement: str = Field(..., min_length=1, max_length=500)
     thread_type: ThreadType | None = None
 
 
 class ThreadUpdate(BaseModel):
-    statement: str | None = None
+    statement: str | None = Field(None, min_length=1, max_length=500)
     thread_type: ThreadType | None = None
-    progression_summary: str | None = None
+    progression_summary: str | None = Field(None, max_length=10000)
 
 
 class ThreadOut(BaseModel):

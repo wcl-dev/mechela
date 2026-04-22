@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ObjectiveCreate(BaseModel):
-    title: str
-    description: str | None = None
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=2000)
 
 
 class ObjectiveOut(BaseModel):
@@ -16,18 +16,18 @@ class ObjectiveOut(BaseModel):
 
 
 class ObjectiveUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=2000)
 
 
 class ProjectCreate(BaseModel):
-    name: str
-    description: str | None = None
+    name: str = Field(..., min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=2000)
 
 
 class ProjectUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=2000)
 
 
 class ProjectOut(BaseModel):

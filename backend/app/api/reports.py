@@ -22,16 +22,22 @@ OUTPUT_WARNING_THRESHOLD = 0.15  # below 15% signal ratio → show warning
 @router.post("/upload", response_model=dict)
 async def upload_report(
     project_id: int = Form(...),
-    name: str = Form(...),
-    report_date: str = Form(...),
+    name: str = Form(..., min_length=1, max_length=255),
+    report_date: str = Form(..., min_length=1, max_length=64),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    if not file.filename.endswith(".docx"):
+    if not file.filename or not file.filename.endswith(".docx"):
         raise HTTPException(400, "Only .docx files are supported")
 
+    # Strip any path components a malicious client might have embedded in
+    # filename (e.g. "../../evil.docx") — we only want the base filename.
+    safe_filename = Path(file.filename).name
+    if not safe_filename or not safe_filename.endswith(".docx"):
+        raise HTTPException(400, "Invalid filename")
+
     # Save file
-    file_path = settings.upload_dir / f"{project_id}_{file.filename}"
+    file_path = settings.upload_dir / f"{project_id}_{safe_filename}"
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
