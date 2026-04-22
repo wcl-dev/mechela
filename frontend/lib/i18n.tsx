@@ -83,6 +83,9 @@ export const I18N: Record<Lang, StringDict> = {
     add: "Add", noKeywordsYet: "No keywords yet",
     // Dashboard
     projectRenamedT: "Project name updated",
+    projectKeywords: "Project-specific keywords",
+    projectKwDesc: "Added on top of global keywords. Scoped to this project only.",
+    showKeywords: "Show keywords", hideKeywords: "Hide keywords",
     confirmedLabel: "confirmed",
     reanalysingToast: "Re-analysing… this can take minutes with local AI.",
     reanalysingButton: "Re-analysing…",
@@ -187,6 +190,9 @@ export const I18N: Record<Lang, StringDict> = {
     add: "新增", noKeywordsYet: "尚未新增",
     // Dashboard
     projectRenamedT: "專案名稱已更新",
+    projectKeywords: "本專案關鍵字",
+    projectKwDesc: "在全域關鍵字之上另外新增，僅套用於本專案。",
+    showKeywords: "顯示關鍵字", hideKeywords: "隱藏關鍵字",
     confirmedLabel: "已確認",
     reanalysingToast: "重新分析中… 本地 AI 可能需要數分鐘。",
     reanalysingButton: "分析中…",

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.config import settings
 from app.services.llm_client import get_llm_client
+from app.models.project import Project
 from app.models.report import Report, Anchor
 from app.models.signal import Signal
 from app.models.thread import ThreadSignal
@@ -67,6 +68,11 @@ async def upload_report(
         anchor_objects.append((anchor, p))
     await db.commit()
 
+    # Look up project's own keyword overrides (additive on top of globals)
+    project = await db.get(Project, project_id)
+    proj_kw = project.custom_keywords if project else None
+    proj_internal = project.internal_keywords if project else None
+
     # Detect signals (with fallback to rule-based if LLM server unreachable)
     llm = get_llm_client()
     fallback_reason = None
@@ -75,11 +81,11 @@ async def upload_report(
         try:
             signals = await detect_llm(parsed, client, chat_model)
         except Exception:
-            signals = detect_rule_based(parsed)
+            signals = detect_rule_based(parsed, proj_kw, proj_internal)
             fallback_reason = "LLM server unreachable — fell back to rule-based detection."
             llm = None  # mark as rule-based for mode reporting
     else:
-        signals = detect_rule_based(parsed)
+        signals = detect_rule_based(parsed, proj_kw, proj_internal)
 
     # Reload anchors to get IDs
     result = await db.execute(
@@ -163,6 +169,11 @@ async def redetect_signals(report_id: int, db: AsyncSession = Depends(get_db)):
     # Re-parse the DOCX to get ParsedAnchor objects for the detector
     parsed = parse_docx(Path(report.file_path))
 
+    # Look up project keyword overrides for the detector
+    project = await db.get(Project, report.project_id)
+    proj_kw = project.custom_keywords if project else None
+    proj_internal = project.internal_keywords if project else None
+
     # Re-detect
     llm = get_llm_client()
     fallback_reason = None
@@ -171,11 +182,11 @@ async def redetect_signals(report_id: int, db: AsyncSession = Depends(get_db)):
         try:
             signals = await detect_llm(parsed, client, chat_model)
         except Exception:
-            signals = detect_rule_based(parsed)
+            signals = detect_rule_based(parsed, proj_kw, proj_internal)
             fallback_reason = "LLM server unreachable — fell back to rule-based detection."
             llm = None
     else:
-        signals = detect_rule_based(parsed)
+        signals = detect_rule_based(parsed, proj_kw, proj_internal)
 
     # Save new signals
     signal_count = 0
@@ -260,6 +271,13 @@ async def list_reports(project_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.get("/{report_id}/signals", response_model=list[SignalOut])
 async def get_signals(report_id: int, db: AsyncSession = Depends(get_db)):
+    # Resolve project for per-project keyword overrides
+    report = await db.get(Report, report_id)
+    if not report:
+        raise HTTPException(404, "Report not found")
+    project = await db.get(Project, report.project_id)
+    proj_kw = project.custom_keywords if project else None
+
     result = await db.execute(
         select(Signal)
         .join(Anchor)
@@ -269,7 +287,7 @@ async def get_signals(report_id: int, db: AsyncSession = Depends(get_db)):
     out = []
     for s in signals:
         sig = SignalOut.model_validate(s)
-        sig.matched_user_keywords = compute_matched_user_keywords(s.text)
+        sig.matched_user_keywords = compute_matched_user_keywords(s.text, proj_kw)
         out.append(sig)
     return out
 

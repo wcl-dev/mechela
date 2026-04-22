@@ -14,6 +14,8 @@ export interface Project {
   id: number
   name: string
   description?: string
+  custom_keywords?: { L1: string[]; L2: string[]; L3: string[] } | null
+  internal_keywords?: string[] | null
   objectives: Objective[]
 }
 

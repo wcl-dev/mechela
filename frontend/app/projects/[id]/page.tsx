@@ -9,9 +9,9 @@ import { ExportModal } from "@/components/ExportModal"
 import {
   getDashboard, getReports, redetectReport, deleteReport, updateThread, deleteThread,
   createThread, updateProject, updateObjective, deleteObjective, createObjective,
-  getSignals,
+  getSignals, getProject,
 } from "@/lib/api"
-import type { Dashboard, DashboardSignal, DashboardThread, Report } from "@/lib/types"
+import type { Dashboard, DashboardSignal, DashboardThread, Report, Project } from "@/lib/types"
 
 type ViewMode = "timeline" | "list"
 
@@ -22,6 +22,7 @@ export default function ProjectPage() {
   const { showToast } = useToast()
   const projectId = Number(id)
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
+  const [project, setProject] = useState<Project | null>(null)
   const [reports, setReports] = useState<Report[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>("timeline")
   const [exportOpen, setExportOpen] = useState(false)
@@ -47,6 +48,7 @@ export default function ProjectPage() {
 
   const refresh = useCallback(() => {
     getDashboard(projectId).then(setDashboard).catch(() => {})
+    getProject(projectId).then(setProject).catch(() => {})
     getReports(projectId).then(async (list) => {
       setReports(list)
       // Fetch pending/total signal counts for each report (parallel)
@@ -254,6 +256,10 @@ export default function ProjectPage() {
             {t.review as string} →
           </Link>
         </div>
+      )}
+
+      {project && (
+        <ProjectKeywordsPanel project={project} onSaved={refresh} />
       )}
 
       <section>
@@ -916,5 +922,132 @@ function AddObjectiveForm({ projectId, onRefresh }: { projectId: number; onRefre
         </button>
       </div>
     </div>
+  )
+}
+
+function ProjectKeywordsPanel({
+  project,
+  onSaved,
+}: {
+  project: Project
+  onSaved: () => void
+}) {
+  const { t } = useT()
+  const { showToast } = useToast()
+  const [open, setOpen] = useState(false)
+  const [kw, setKw] = useState<{ L1: string[]; L2: string[]; L3: string[] }>({
+    L1: project.custom_keywords?.L1 || [],
+    L2: project.custom_keywords?.L2 || [],
+    L3: project.custom_keywords?.L3 || [],
+  })
+  const [ignoreList, setIgnoreList] = useState<string[]>(project.internal_keywords || [])
+  const [draft, setDraft] = useState({ L1: "", L2: "", L3: "", ignore: "" })
+
+  const totalCount =
+    kw.L1.length + kw.L2.length + kw.L3.length + ignoreList.length
+
+  const addKw = async (level: "L1" | "L2" | "L3" | "ignore") => {
+    const v = (draft as any)[level].trim()
+    if (!v) return
+    try {
+      if (level === "ignore") {
+        const next = [...ignoreList, v]
+        setIgnoreList(next)
+        setDraft({ ...draft, ignore: "" })
+        await updateProject(project.id, { internal_keywords: next })
+      } else {
+        const next = { ...kw, [level]: [...(kw as any)[level], v] }
+        setKw(next)
+        setDraft({ ...draft, [level]: "" })
+        await updateProject(project.id, { custom_keywords: next })
+      }
+      onSaved()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  const removeKw = async (level: "L1" | "L2" | "L3" | "ignore", i: number) => {
+    try {
+      if (level === "ignore") {
+        const next = ignoreList.filter((_, idx) => idx !== i)
+        setIgnoreList(next)
+        await updateProject(project.id, { internal_keywords: next })
+      } else {
+        const next = { ...kw, [level]: (kw as any)[level].filter((_: any, idx: number) => idx !== i) }
+        setKw(next)
+        await updateProject(project.id, { custom_keywords: next })
+      }
+      onSaved()
+    } catch (err) {
+      showToast(String(err))
+    }
+  }
+
+  return (
+    <section>
+      <div className="sh">
+        <div className="sh-left">
+          <h2>{t.projectKeywords as string}</h2>
+          {totalCount > 0 && <span className="n">· {totalCount}</span>}
+        </div>
+        <button className="btn ghost sm" onClick={() => setOpen((v) => !v)}>
+          {open ? (t.hideKeywords as string) : (t.showKeywords as string)}
+        </button>
+      </div>
+      {open && (
+        <div className="obj" style={{ padding: 16 }}>
+          <p style={{ margin: "0 0 12px", fontSize: "calc(11.5px * var(--font-scale))", color: "var(--ink-3)" }}>
+            {t.projectKwDesc as string}
+          </p>
+          <div className="kw-groups">
+            {[
+              { k: "L1", lbl: t.lvlL1, dsc: t.l1Desc, ph: t.kwL1Ph },
+              { k: "L2", lbl: t.lvlL2, dsc: t.l2Desc, ph: t.kwL2Ph },
+              { k: "L3", lbl: t.lvlL3, dsc: t.l3Desc, ph: t.kwL3Ph },
+              { k: "ignore", lbl: t.kwIgnoreLbl, dsc: t.kwIgnoreDsc, ph: t.kwIgnorePh },
+            ].map((g) => {
+              const list = g.k === "ignore" ? ignoreList : (kw as any)[g.k as string] as string[]
+              return (
+                <div className="kw-grp" key={g.k}>
+                  <div className="kw-grp-h">
+                    <span className={`chip ${g.k.toLowerCase()}`}>{g.lbl as string}</span>
+                    <span className="kw-grp-dsc">{g.dsc as string}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      className="kw-in"
+                      value={(draft as any)[g.k]}
+                      onChange={(e) => setDraft({ ...draft, [g.k]: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addKw(g.k as any)
+                      }}
+                      placeholder={g.ph as string}
+                    />
+                    <button className="btn ghost" onClick={() => addKw(g.k as any)}>
+                      <Icon name="plus" size={12} />
+                      {t.add as string}
+                    </button>
+                  </div>
+                  <div className="kw-chips">
+                    {list.map((k, i) => (
+                      <span className="kw" key={`${g.k}-${i}`}>
+                        {k}
+                        <button onClick={() => removeKw(g.k as any, i)}>
+                          <Icon name="x" size={9} />
+                        </button>
+                      </span>
+                    ))}
+                    {list.length === 0 && (
+                      <span className="kw-empty">{t.noKeywordsYet as string}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </section>
   )
 }

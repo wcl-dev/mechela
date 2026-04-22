@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.services.llm_client import get_llm_client
 from app.models.signal import Signal, SignalLevel, SignalStatus
 from app.models.report import Anchor, Report
-from app.models.project import Objective
+from app.models.project import Objective, Project
 from app.models.thread import Thread, ThreadSignal
 from app.schemas.signal import SignalOut, SignalReview
 from app.services.matcher import match_rule_based, match_llm
@@ -43,8 +43,21 @@ async def create_signal(body: SignalCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(signal)
     out = SignalOut.model_validate(signal)
-    out.matched_user_keywords = compute_matched_user_keywords(signal.text)
+    proj_kw = await _project_custom_keywords_for_signal(signal, db)
+    out.matched_user_keywords = compute_matched_user_keywords(signal.text, proj_kw)
     return out
+
+
+async def _project_custom_keywords_for_signal(signal: Signal, db: AsyncSession) -> dict | None:
+    """Resolve project from signal → anchor → report → project, return its custom_keywords."""
+    anchor = await db.get(Anchor, signal.anchor_id)
+    if not anchor:
+        return None
+    report = await db.get(Report, anchor.report_id)
+    if not report:
+        return None
+    project = await db.get(Project, report.project_id)
+    return project.custom_keywords if project else None
 
 
 @router.patch("/{signal_id}", response_model=SignalOut)
@@ -80,7 +93,8 @@ async def review_signal(
     await db.commit()
     await db.refresh(signal)
     out = SignalOut.model_validate(signal)
-    out.matched_user_keywords = compute_matched_user_keywords(signal.text)
+    proj_kw = await _project_custom_keywords_for_signal(signal, db)
+    out.matched_user_keywords = compute_matched_user_keywords(signal.text, proj_kw)
     return out
 
 

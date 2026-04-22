@@ -26,7 +26,12 @@ export const createProject = (name: string, description?: string) =>
     body: JSON.stringify({ name, description }),
   })
 export const getProject = (id: number) => req<Project>(`/projects/${id}`)
-export const updateProject = (id: number, data: { name?: string; description?: string }) =>
+export const updateProject = (id: number, data: {
+  name?: string
+  description?: string
+  custom_keywords?: { L1: string[]; L2: string[]; L3: string[] } | null
+  internal_keywords?: string[] | null
+}) =>
   req<Project>(`/projects/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),

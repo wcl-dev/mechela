@@ -213,14 +213,23 @@ def _has_activity_object(text: str) -> bool:
     return any(obj in lower for obj in ACTIVITY_OBJECTS)
 
 
-def _has_external_subject(text: str) -> bool:
-    """Prefer signals where the subject is an external actor, not the reporting org."""
+def _has_external_subject(
+    text: str,
+    project_internal: list[str] | None = None,
+) -> bool:
+    """Prefer signals where the subject is an external actor, not the reporting org.
+
+    Combines built-in internal markers + global ignore list (user_settings.json)
+    + optional per-project ignore list.
+    """
     from app.core.settings_store import get_internal_keywords
     lower = text.lower()
     internal = {"we ", "our ", "the organization", "the team"}
     custom = get_internal_keywords()
     if custom:
         internal = internal | {k.lower() for k in custom}
+    if project_internal:
+        internal = internal | {k.lower() for k in project_internal}
     external_hints = {
         "legislator", "government", "ministry", "company", "companies",
         "stakeholder", "partner", "coalition", "community", "both sides",
@@ -236,6 +245,7 @@ def _score_rule(
     l1_kw: set = L1_KEYWORDS,
     l2_kw: set = L2_KEYWORDS,
     l3_kw: set = L3_KEYWORDS,
+    project_internal: list[str] | None = None,
 ) -> tuple[SignalLevel | None, float]:
     lower = text.lower()
 
@@ -250,7 +260,7 @@ def _score_rule(
     if activity_hits > 0 and (l1_hits + l2_hits + l3_hits) == 0:
         return None, 0.0
 
-    external_bonus = 0.1 if _has_external_subject(text) else 0.0
+    external_bonus = 0.1 if _has_external_subject(text, project_internal) else 0.0
     # Activity objects (workshop, session, etc.) reduce confidence but don't eliminate signals
     activity_penalty = -0.15 if (l1_hits == 0 and _has_activity_object(text)) else 0.0
 
@@ -266,33 +276,60 @@ def _score_rule(
     return None, 0.0
 
 
-def _merge_custom_keywords() -> tuple[set, set, set]:
-    """Merge built-in keywords with user-defined custom keywords."""
+def _merge_custom_keywords(
+    project_keywords: dict | None = None,
+) -> tuple[set, set, set]:
+    """Merge built-in + global user keywords + per-project overrides.
+
+    `project_keywords` expected shape: {"L1": [...], "L2": [...], "L3": [...]}
+    """
     from app.core.settings_store import get_custom_keywords
-    custom = get_custom_keywords()
-    l1 = L1_KEYWORDS | {k.lower() for k in custom.get("L1", [])}
-    l2 = L2_KEYWORDS | {k.lower() for k in custom.get("L2", [])}
-    l3 = L3_KEYWORDS | {k.lower() for k in custom.get("L3", [])}
-    return l1, l2, l3
+    global_custom = get_custom_keywords()
+    project_custom = project_keywords or {}
+
+    def _combine(level: str, builtin: set) -> set:
+        return (
+            builtin
+            | {k.lower() for k in global_custom.get(level, [])}
+            | {k.lower() for k in project_custom.get(level, [])}
+        )
+
+    return _combine("L1", L1_KEYWORDS), _combine("L2", L2_KEYWORDS), _combine("L3", L3_KEYWORDS)
 
 
-def compute_matched_user_keywords(text: str) -> dict[str, list[str]]:
+def compute_matched_user_keywords(
+    text: str,
+    project_keywords: dict | None = None,
+) -> dict[str, list[str]]:
     """Return which user-defined keywords match this text, grouped by level.
+    Includes both global user-settings keywords AND the project's own list.
     Independent of LLM judgement — used as a second opinion during review."""
     from app.core.settings_store import get_custom_keywords
-    custom = get_custom_keywords()
+    global_custom = get_custom_keywords()
+    project_custom = project_keywords or {}
     lower = text.lower()
     result: dict[str, list[str]] = {"L1": [], "L2": [], "L3": []}
     for level in ("L1", "L2", "L3"):
-        for kw in custom.get(level, []):
-            pattern = r'\b' + re.escape(kw.lower()) + r'\b'
+        # Deduplicate while preserving display form (prefer project's version
+        # if same keyword exists in both).
+        seen: set[str] = set()
+        for kw in list(project_custom.get(level, [])) + list(global_custom.get(level, [])):
+            key = kw.lower()
+            if key in seen:
+                continue
+            pattern = r'\b' + re.escape(key) + r'\b'
             if re.search(pattern, lower):
                 result[level].append(kw)
+                seen.add(key)
     return result
 
 
-def detect_rule_based(anchors: list[ParsedAnchor]) -> list[DetectedSignal]:
-    custom_l1, custom_l2, custom_l3 = _merge_custom_keywords()
+def detect_rule_based(
+    anchors: list[ParsedAnchor],
+    project_keywords: dict | None = None,
+    project_internal: list[str] | None = None,
+) -> list[DetectedSignal]:
+    custom_l1, custom_l2, custom_l3 = _merge_custom_keywords(project_keywords)
     results = []
     for anchor in anchors:
         # Skip sections where signals are unlikely
@@ -303,7 +340,9 @@ def detect_rule_based(anchors: list[ParsedAnchor]) -> list[DetectedSignal]:
             continue
 
         is_context_section = anchor.section in CONTEXT_SECTION_NAMES
-        level, confidence = _score_rule(anchor.text, custom_l1, custom_l2, custom_l3)
+        level, confidence = _score_rule(
+            anchor.text, custom_l1, custom_l2, custom_l3, project_internal
+        )
 
         if level is None:
             continue
